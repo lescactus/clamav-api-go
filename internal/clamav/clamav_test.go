@@ -230,3 +230,74 @@ func TestClamavClientVersion(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 }
+
+func TestClamavClientParseResponse(t *testing.T) {
+	tests := []struct {
+		name    string
+		resp    []byte
+		wantErr bool
+		typeErr error
+	}{
+		{
+			name:    "empty response",
+			resp:    []byte(""),
+			wantErr: false,
+			typeErr: nil,
+		},
+		{
+			name:    "response is foobar",
+			resp:    []byte("foobar"),
+			wantErr: false,
+			typeErr: nil,
+		},
+		{
+			name:    "response is PONG",
+			resp:    RespPing,
+			wantErr: false,
+			typeErr: nil,
+		},
+		{
+			name:    "response is RELOADING",
+			resp:    RespReload,
+			wantErr: false,
+			typeErr: nil,
+		},
+		{
+			name:    "response is stream: OK",
+			resp:    RespScan,
+			wantErr: false,
+			typeErr: nil,
+		},
+		{
+			name:    "response is UNKNOWN COMMAND",
+			resp:    RespErrUnknownCommand,
+			wantErr: true,
+			typeErr: ErrUnknownCommand,
+		},
+		{
+			name:    "response is stream: Eicar FOUND",
+			resp:    []byte("stream: Eicar FOUND"),
+			wantErr: true,
+			typeErr: ErrVirusFound,
+		},
+		{
+			name:    "response is INSTREAM size limit exceeded. ERROR",
+			resp:    RespErrScanFileSizeLimitExceeded,
+			wantErr: true,
+			typeErr: ErrScanFileSizeLimitExceeded,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &ClamavClient{}
+
+			err := c.parseResponse(tt.resp)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.ErrorIs(t, err, tt.typeErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

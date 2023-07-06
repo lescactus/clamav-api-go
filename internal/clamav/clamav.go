@@ -42,6 +42,14 @@ func (c *ClamavClient) Ping(ctx context.Context) ([]byte, error) {
 	defer conn.Close()
 
 	resp, err := c.SendCommand(conn, CmdPing)
+	if err != nil {
+		return nil, fmt.Errorf("send command error: %w", err)
+	}
+
+	err = c.parseResponse(resp)
+	if err != nil {
+		return nil, fmt.Errorf("error from clamav: %w", err)
+	}
 	return resp, err
 }
 
@@ -53,6 +61,14 @@ func (c *ClamavClient) Version(ctx context.Context) ([]byte, error) {
 	defer conn.Close()
 
 	resp, err := c.SendCommand(conn, CmdVersionBytes)
+	if err != nil {
+		return nil, fmt.Errorf("send command error: %w", err)
+	}
+
+	err = c.parseResponse(resp)
+	if err != nil {
+		return nil, fmt.Errorf("error from clamav: %w", err)
+	}
 	return resp, err
 }
 
@@ -92,4 +108,23 @@ func (c *ClamavClient) readResponse(r io.Reader) ([]byte, error) {
 	// Clamd terminate the response with a NULL character (\000)
 	// which can safely be trimed
 	return bytes.TrimSuffix(resp, []byte("\000")), nil
+}
+
+// parseResponse will attempt to parse the Clamav response to the command
+// and determine whether or not Clamav answered with an error.
+// See clamav/errors.go for a list of known errors.
+func (c *ClamavClient) parseResponse(msg []byte) error {
+	if bytes.Equal(msg, RespErrScanFileSizeLimitExceeded) {
+		return ErrScanFileSizeLimitExceeded
+	}
+
+	if bytes.Contains(msg, []byte("FOUND")) {
+		return ErrVirusFound
+	}
+
+	if bytes.Equal(msg, RespErrUnknownCommand) {
+		return ErrUnknownCommand
+	}
+
+	return nil
 }
