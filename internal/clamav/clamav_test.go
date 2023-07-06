@@ -28,6 +28,7 @@ type handlerType string
 var (
 	handlerPing    handlerType = "ping"
 	handlerVersion handlerType = "version"
+	handlerReload  handlerType = "reload"
 )
 
 // ClamdMockTCPServer is a tcp server
@@ -52,12 +53,8 @@ func NewServer(netw, addr string, handler handlerType) *ClamdMockTCPServer {
 	}
 	s.listener = l
 	s.wg.Add(1)
-	switch handler {
-	case handlerPing:
-		go s.Serve(handlerPing)
-	case handlerVersion:
-		go s.Serve(handlerVersion)
-	}
+
+	go s.Serve(handler)
 
 	s.ready <- true
 	return s
@@ -85,6 +82,9 @@ func (s *ClamdMockTCPServer) Serve(handler handlerType) {
 					s.wg.Done()
 				case handlerVersion:
 					s.handlerVersion(conn)
+					s.wg.Done()
+				case handlerReload:
+					s.handlerReload(conn)
 					s.wg.Done()
 				default:
 					s.handlerPing(conn)
@@ -129,6 +129,13 @@ func (s *ClamdMockTCPServer) handlerVersion(conn net.Conn) {
 
 	//log.Printf("received from %v: %s", conn.RemoteAddr(), string(buf[:n]))
 	fmt.Fprintf(conn, "ClamAV 1.0.1/26961/%s\000", time.Now().Format("Thu Jul  6 07:29:38 2023"))
+
+}
+
+func (s *ClamdMockTCPServer) handlerReload(conn net.Conn) {
+	defer conn.Close()
+
+	fmt.Fprint(conn, "RELOADING\000")
 
 }
 
@@ -229,6 +236,25 @@ func TestClamavClientVersion(t *testing.T) {
 	resp, err = c.Version(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, resp)
+}
+
+func TestClamavClientReload(t *testing.T) {
+	// Start mock tcp server on random port and wait for it to be ready
+	s := NewServer(network, listen, handlerReload)
+	<-s.ready
+
+	c := NewClamavClient(s.listener.Addr().String(), s.listener.Addr().Network(),
+		time.Second, time.Second)
+
+	err := c.Reload(context.Background())
+	assert.NoError(t, err)
+
+	// Stop mock tcp server
+	s.Stop()
+
+	// When the server is stopped
+	err = c.Reload(context.Background())
+	assert.Error(t, err)
 }
 
 func TestClamavClientParseResponse(t *testing.T) {
