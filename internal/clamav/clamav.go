@@ -15,6 +15,7 @@ type Clamaver interface {
 	Version(ctx context.Context) ([]byte, error)
 	Reload(ctx context.Context) error
 	Stats(ctx context.Context) ([]byte, error)
+	VersionCommands(ctx context.Context) ([]byte, error)
 }
 
 type ClamavClient struct {
@@ -105,6 +106,25 @@ func (c *ClamavClient) Stats(ctx context.Context) ([]byte, error) {
 	defer conn.Close()
 
 	resp, err := c.SendCommand(conn, CmdStats)
+	if err != nil {
+		return nil, fmt.Errorf("error while sending command: %w", err)
+	}
+
+	err = c.parseResponse(resp)
+	if err != nil {
+		return nil, fmt.Errorf("error from clamav: %w", err)
+	}
+	return resp, nil
+}
+
+func (c *ClamavClient) VersionCommands(ctx context.Context) ([]byte, error) {
+	conn, err := c.dialer.DialContext(ctx, c.network, c.address)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	resp, err := c.SendCommand(conn, CmdVersionCommands)
 	if err != nil {
 		return nil, fmt.Errorf("error while sending command: %w", err)
 	}

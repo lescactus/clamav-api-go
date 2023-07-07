@@ -26,10 +26,11 @@ var (
 type handlerType string
 
 var (
-	handlerPing    handlerType = "ping"
-	handlerVersion handlerType = "version"
-	handlerReload  handlerType = "reload"
-	handlerStats   handlerType = "stats"
+	handlerPing            handlerType = "ping"
+	handlerVersion         handlerType = "version"
+	handlerReload          handlerType = "reload"
+	handlerStats           handlerType = "stats"
+	handlerVersionCommands handlerType = "versioncommands"
 )
 
 // ClamdMockTCPServer is a tcp server
@@ -89,6 +90,9 @@ func (s *ClamdMockTCPServer) Serve(handler handlerType) {
 					s.wg.Done()
 				case handlerStats:
 					s.handlerStats(conn)
+					s.wg.Done()
+				case handlerVersionCommands:
+					s.handlerVersionCommands(conn)
 					s.wg.Done()
 				default:
 					s.handlerPing(conn)
@@ -158,6 +162,16 @@ func (s *ClamdMockTCPServer) handlerStats(conn net.Conn) {
 
 	s.readFromConnection(conn)
 	fmt.Fprint(conn, statsResp)
+}
+
+// Example of output for a 'VERSIONCOMMANDS' command
+var versionCommandsResp = `ClamAV 1.0.1/26961/Thu Jul  6 07:29:38 2023| COMMANDS: SCAN QUIT RELOAD PING CONTSCAN VERSIONCOMMANDS VERSION END SHUTDOWN MULTISCAN FILDES STATS IDSESSION INSTREAM DETSTATSCLEAR DETSTATS ALLMATCHSCAN`
+
+func (s *ClamdMockTCPServer) handlerVersionCommands(conn net.Conn) {
+	defer conn.Close()
+
+	s.readFromConnection(conn)
+	fmt.Fprint(conn, versionCommandsResp)
 }
 
 func TestNewClamavClient(t *testing.T) {
@@ -295,6 +309,27 @@ func TestClamavClientStats(t *testing.T) {
 
 	// When the server is stopped
 	resp, err = c.Stats(context.Background())
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+}
+
+func TestClamavClientVersionCommands(t *testing.T) {
+	// Start mock tcp server on random port and wait for it to be ready
+	s := NewServer(network, listen, handlerVersionCommands)
+	<-s.ready
+
+	c := NewClamavClient(s.listener.Addr().String(), s.listener.Addr().Network(),
+		time.Second, time.Second)
+
+	resp, err := c.VersionCommands(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, versionCommandsResp, string(resp))
+
+	// Stop mock tcp server
+	s.Stop()
+
+	// When the server is stopped
+	resp, err = c.VersionCommands(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, resp)
 }
