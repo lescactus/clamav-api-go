@@ -29,6 +29,7 @@ var (
 	handlerPing    handlerType = "ping"
 	handlerVersion handlerType = "version"
 	handlerReload  handlerType = "reload"
+	handlerStats   handlerType = "stats"
 )
 
 // ClamdMockTCPServer is a tcp server
@@ -75,7 +76,7 @@ func (s *ClamdMockTCPServer) Serve(handler handlerType) {
 		} else {
 			s.wg.Add(1)
 
-			go func(conn net.Conn) {
+			go func(handler handlerType, conn net.Conn) {
 				switch handler {
 				case handlerPing:
 					s.handlerPing(conn)
@@ -86,11 +87,14 @@ func (s *ClamdMockTCPServer) Serve(handler handlerType) {
 				case handlerReload:
 					s.handlerReload(conn)
 					s.wg.Done()
+				case handlerStats:
+					s.handlerStats(conn)
+					s.wg.Done()
 				default:
 					s.handlerPing(conn)
 					s.wg.Done()
 				}
-			}(conn)
+			}(handler, conn)
 		}
 	}
 }
@@ -102,7 +106,7 @@ func (s *ClamdMockTCPServer) Stop() {
 }
 
 func (s *ClamdMockTCPServer) readFromConnection(conn net.Conn) ([]byte, int) {
-	buf := make([]byte, 2048)
+	buf := make([]byte, 4096)
 	for {
 		n, err := conn.Read(buf)
 		if err != nil && err != io.EOF {
@@ -136,7 +140,24 @@ func (s *ClamdMockTCPServer) handlerReload(conn net.Conn) {
 	defer conn.Close()
 
 	fmt.Fprint(conn, "RELOADING\000")
+}
 
+// Example of output for a 'STATS' command
+var statsResp = `POOLS: 1
+
+STATE: VALID PRIMARY
+THREADS: live 1  idle 0 max 10 idle-timeout 30
+QUEUE: 0 items
+	STATS 0.000038
+
+MEMSTATS: heap N/A mmap N/A used N/A free N/A releasable N/A pools 1 pools_used 1307.045M pools_total 1307.093M
+END`
+
+func (s *ClamdMockTCPServer) handlerStats(conn net.Conn) {
+	defer conn.Close()
+
+	s.readFromConnection(conn)
+	fmt.Fprint(conn, statsResp)
 }
 
 func TestNewClamavClient(t *testing.T) {
@@ -255,6 +276,27 @@ func TestClamavClientReload(t *testing.T) {
 	// When the server is stopped
 	err = c.Reload(context.Background())
 	assert.Error(t, err)
+}
+
+func TestClamavClientStats(t *testing.T) {
+	// Start mock tcp server on random port and wait for it to be ready
+	s := NewServer(network, listen, handlerStats)
+	<-s.ready
+
+	c := NewClamavClient(s.listener.Addr().String(), s.listener.Addr().Network(),
+		time.Second, time.Second)
+
+	resp, err := c.Stats(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, statsResp, string(resp))
+
+	// Stop mock tcp server
+	s.Stop()
+
+	// When the server is stopped
+	resp, err = c.Stats(context.Background())
+	assert.Error(t, err)
+	assert.Nil(t, resp)
 }
 
 func TestClamavClientParseResponse(t *testing.T) {

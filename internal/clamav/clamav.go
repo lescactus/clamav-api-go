@@ -14,6 +14,7 @@ type Clamaver interface {
 	Ping(ctx context.Context) ([]byte, error)
 	Version(ctx context.Context) ([]byte, error)
 	Reload(ctx context.Context) error
+	Stats(ctx context.Context) ([]byte, error)
 }
 
 type ClamavClient struct {
@@ -44,7 +45,7 @@ func (c *ClamavClient) Ping(ctx context.Context) ([]byte, error) {
 
 	resp, err := c.SendCommand(conn, CmdPing)
 	if err != nil {
-		return nil, fmt.Errorf("send command error: %w", err)
+		return nil, fmt.Errorf("error while sending command: %w", err)
 	}
 
 	err = c.parseResponse(resp)
@@ -63,7 +64,7 @@ func (c *ClamavClient) Version(ctx context.Context) ([]byte, error) {
 
 	resp, err := c.SendCommand(conn, CmdVersionBytes)
 	if err != nil {
-		return nil, fmt.Errorf("send command error: %w", err)
+		return nil, fmt.Errorf("error while sending command: %w", err)
 	}
 
 	err = c.parseResponse(resp)
@@ -82,7 +83,7 @@ func (c *ClamavClient) Reload(ctx context.Context) error {
 
 	resp, err := c.SendCommand(conn, CmdReload)
 	if err != nil {
-		return fmt.Errorf("send command error: %w", err)
+		return fmt.Errorf("error while sending command: %w", err)
 	}
 
 	err = c.parseResponse(resp)
@@ -94,6 +95,25 @@ func (c *ClamavClient) Reload(ctx context.Context) error {
 		return fmt.Errorf("error from clamav: %w. Expected %s but got %s", ErrUnexpectedResponse, RespReload, resp)
 	}
 	return nil
+}
+
+func (c *ClamavClient) Stats(ctx context.Context) ([]byte, error) {
+	conn, err := c.dialer.DialContext(ctx, c.network, c.address)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	resp, err := c.SendCommand(conn, CmdStats)
+	if err != nil {
+		return nil, fmt.Errorf("error while sending command: %w", err)
+	}
+
+	err = c.parseResponse(resp)
+	if err != nil {
+		return nil, fmt.Errorf("error from clamav: %w", err)
+	}
+	return resp, nil
 }
 
 // SendCommand will attempt send the given command to Clamd
