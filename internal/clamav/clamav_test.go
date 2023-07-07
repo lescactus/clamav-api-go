@@ -31,6 +31,7 @@ var (
 	handlerReload          handlerType = "reload"
 	handlerStats           handlerType = "stats"
 	handlerVersionCommands handlerType = "versioncommands"
+	handlerShutdown        handlerType = "shutdown"
 )
 
 // ClamdMockTCPServer is a tcp server
@@ -93,6 +94,9 @@ func (s *ClamdMockTCPServer) Serve(handler handlerType) {
 					s.wg.Done()
 				case handlerVersionCommands:
 					s.handlerVersionCommands(conn)
+					s.wg.Done()
+				case handlerShutdown:
+					s.handlerShutdown(conn)
 					s.wg.Done()
 				default:
 					s.handlerPing(conn)
@@ -172,6 +176,10 @@ func (s *ClamdMockTCPServer) handlerVersionCommands(conn net.Conn) {
 
 	s.readFromConnection(conn)
 	fmt.Fprint(conn, versionCommandsResp)
+}
+
+func (s *ClamdMockTCPServer) handlerShutdown(conn net.Conn) {
+	defer conn.Close()
 }
 
 func TestNewClamavClient(t *testing.T) {
@@ -332,6 +340,25 @@ func TestClamavClientVersionCommands(t *testing.T) {
 	resp, err = c.VersionCommands(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, resp)
+}
+
+func TestClamavClientVersionShutdown(t *testing.T) {
+	// Start mock tcp server on random port and wait for it to be ready
+	s := NewServer(network, listen, handlerShutdown)
+	<-s.ready
+
+	c := NewClamavClient(s.listener.Addr().String(), s.listener.Addr().Network(),
+		time.Second, time.Second)
+
+	err := c.Shutdown(context.Background())
+	assert.NoError(t, err)
+
+	// Stop mock tcp server
+	s.Stop()
+
+	// When the server is stopped
+	err = c.Shutdown(context.Background())
+	assert.Error(t, err)
 }
 
 func TestClamavClientParseResponse(t *testing.T) {
