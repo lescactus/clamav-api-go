@@ -1,12 +1,15 @@
 package clamav
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"regexp"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -26,12 +29,15 @@ var (
 type handlerType string
 
 var (
-	handlerPing            handlerType = "ping"
-	handlerVersion         handlerType = "version"
-	handlerReload          handlerType = "reload"
-	handlerStats           handlerType = "stats"
-	handlerVersionCommands handlerType = "versioncommands"
-	handlerShutdown        handlerType = "shutdown"
+	handlerPing                handlerType = "ping"
+	handlerVersion             handlerType = "version"
+	handlerReload              handlerType = "reload"
+	handlerStats               handlerType = "stats"
+	handlerVersionCommands     handlerType = "versioncommands"
+	handlerShutdown            handlerType = "shutdown"
+	handlerInStreamGoodFile    handlerType = "instreamgoodfile"
+	handlerInStreamBadFile     handlerType = "instreamgbadfile"
+	handlerInStreamTooLongFile handlerType = "instreamtoolongfile"
 )
 
 // ClamdMockTCPServer is a tcp server
@@ -97,6 +103,15 @@ func (s *ClamdMockTCPServer) Serve(handler handlerType) {
 					s.wg.Done()
 				case handlerShutdown:
 					s.handlerShutdown(conn)
+					s.wg.Done()
+				case handlerInStreamGoodFile:
+					s.handlerInStreamGoodFile(conn)
+					s.wg.Done()
+				case handlerInStreamBadFile:
+					s.handlerInStreamBadFile(conn)
+					s.wg.Done()
+				case handlerInStreamTooLongFile:
+					s.handlerInStreamTooLongFile(conn)
 					s.wg.Done()
 				default:
 					s.handlerPing(conn)
@@ -180,6 +195,89 @@ func (s *ClamdMockTCPServer) handlerVersionCommands(conn net.Conn) {
 
 func (s *ClamdMockTCPServer) handlerShutdown(conn net.Conn) {
 	defer conn.Close()
+}
+
+var (
+	goodFile    = `foobar`
+	badFile     = `X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*`
+	tooLongFile = `db94dcc6543c3b1fe3c3ca1948c5ac465998d7ac830535dd54f385142182072152000e398c4554133ca3038467f976d654d23bb3a7480a01bb681d8f6be8ce6az`
+)
+
+func (s *ClamdMockTCPServer) handlerInStreamGoodFile(conn net.Conn) {
+	defer conn.Close()
+
+	// Clamav expects a stream of chunks. The format of the chunk is: '<length><data>'
+	// where <length> is the size of the following data in bytes expressed as a 4 byte unsigned
+	// integer in network byte order and <data> is the actual chunk.
+	// Streaming is terminated by sending a zero-length chunk.
+	//
+	// For example, to send 'foobar', the bytes sent would be:
+	// [122 73 78 83 84 82 69 65 77 0 0 0 0 6 102 111 111 98 97 114 0 0 0 0]
+	//   ^                       ^  ^       ^  ^                 ^  ^     ^
+	//   |       zINSTREAM       |  |  len  |  |      foobar     |  | null|
+	//   +-----------------------+  +-------+  +-----------------+  +-----+
+	buf := make([]byte, 64)
+	msg := make([]byte, 0)
+
+	for {
+		n, err := conn.Read(buf)
+		if err != nil && err != io.EOF {
+			log.Fatalf("error while reading response: %s", err)
+		}
+
+		msg = append(msg, buf[:n]...)
+		if err == io.EOF || n == 0 || bytes.HasSuffix(msg, []byte{'\000', '\000', '\000', '\000'}) {
+			break
+		}
+	}
+
+	fmt.Fprint(conn, "stream: OK\000")
+}
+
+func (s *ClamdMockTCPServer) handlerInStreamBadFile(conn net.Conn) {
+	defer conn.Close()
+	buf := make([]byte, 64)
+	msg := make([]byte, 0)
+
+	for {
+		n, err := conn.Read(buf)
+		if err != nil && err != io.EOF {
+			log.Fatalf("error while reading response: %s", err)
+		}
+
+		msg = append(msg, buf[:n]...)
+		if err == io.EOF || n == 0 || bytes.HasSuffix(msg, []byte{'\000', '\000', '\000', '\000'}) {
+			break
+		}
+	}
+
+	fmt.Fprint(conn, "stream: Win.Test.EICAR_HDB-1 FOUND\000")
+}
+
+func (s *ClamdMockTCPServer) handlerInStreamTooLongFile(conn net.Conn) {
+	defer conn.Close()
+
+	buf := make([]byte, 64)
+	msg := make([]byte, 0)
+
+	for {
+		n, err := conn.Read(buf)
+		if err != nil && err != io.EOF {
+			log.Fatalf("error while reading response: %s", err)
+		}
+
+		msg = append(msg, buf[:n]...)
+		if err == io.EOF || n == 0 || bytes.HasSuffix(msg, []byte{'\000', '\000', '\000', '\000'}) {
+			break
+		}
+	}
+	// Get file size. It's 4 bytes after the Command
+	fsize := msg[len(CmdInstream) : len(CmdInstream)+4]
+	size := binary.BigEndian.Uint32(fsize)
+
+	if size > 128 {
+		fmt.Fprint(conn, "INSTREAM size limit exceeded. ERROR\000")
+	}
 }
 
 func TestNewClamavClient(t *testing.T) {
@@ -358,6 +456,57 @@ func TestClamavClientVersionShutdown(t *testing.T) {
 
 	// When the server is stopped
 	err = c.Shutdown(context.Background())
+	assert.Error(t, err)
+}
+
+func TestClamavClientInStream(t *testing.T) {
+	// Good file
+	// Start mock tcp server on random port and wait for it to be ready
+	s := NewServer(network, listen, handlerInStreamGoodFile)
+	<-s.ready
+
+	c := NewClamavClient(s.listener.Addr().String(), s.listener.Addr().Network(),
+		time.Second, time.Second)
+
+	resp, err := c.InStream(context.Background(), strings.NewReader(goodFile), int64(len(goodFile)))
+	assert.EqualValues(t, RespScan, resp)
+	assert.NoError(t, err)
+
+	// Stop mock tcp server
+	s.Stop()
+
+	// Bad file
+	s = NewServer(network, listen, handlerInStreamBadFile)
+	<-s.ready
+
+	c = NewClamavClient(s.listener.Addr().String(), s.listener.Addr().Network(),
+		time.Second, time.Second)
+
+	resp, err = c.InStream(context.Background(), strings.NewReader(badFile), int64(len(badFile)))
+	assert.True(t, bytes.Contains([]byte("FOUND"), resp))
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrVirusFound)
+
+	// Stop mock tcp server
+	s.Stop()
+
+	// File is too long
+	s = NewServer(network, listen, handlerInStreamTooLongFile)
+	<-s.ready
+
+	c = NewClamavClient(s.listener.Addr().String(), s.listener.Addr().Network(),
+		time.Second, time.Second)
+
+	_, err = c.InStream(context.Background(), strings.NewReader(tooLongFile), int64(len(tooLongFile)))
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrScanFileSizeLimitExceeded)
+
+	// Stop mock tcp server
+	s.Stop()
+
+	// When the server is stopped
+	resp, err = c.InStream(context.Background(), strings.NewReader(goodFile), int64(len(goodFile)))
+	assert.Nil(t, resp)
 	assert.Error(t, err)
 }
 

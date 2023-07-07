@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -17,6 +18,7 @@ type Clamaver interface {
 	Stats(ctx context.Context) ([]byte, error)
 	VersionCommands(ctx context.Context) ([]byte, error)
 	Shutdown(ctx context.Context) error
+	InStream(ctx context.Context, r io.Reader, size int64) ([]byte, error)
 }
 
 type ClamavClient struct {
@@ -151,6 +153,75 @@ func (c *ClamavClient) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+// InStream will attempt to connect to Clamd, send the command over the network ("INSTREAM")
+// and stream the given io.Reader to let Clamd scan it.
+//
+// The stream is sent to Clamd in chunks, after INSTREAM, on the same socket on which the command was sent.
+//
+// It will read the response and return it as a byte slice as well as any error
+// encountered.
+//
+// See https://linux.die.net/man/8/clamd for a detailed explanation of the INSTREAM command.
+func (c *ClamavClient) InStream(ctx context.Context, r io.Reader, size int64) ([]byte, error) {
+	conn, err := c.dialer.DialContext(ctx, c.network, c.address)
+	if err != nil {
+		return nil, fmt.Errorf("error while dialing %s/%s: %w", c.network, c.address, err)
+	}
+
+	// The format of the chunk is: '<length><data>' where <length> is the size of the following data in bytes
+	// expressed as a 4 byte unsigned integer in network byte order and <data> is the actual chunk.
+	// Streaming is terminated by sending a zero-length chunk.
+
+	reader := bufio.NewReaderSize(r, 2048)
+	writer := bufio.NewWriter(conn)
+
+	// Start scan command.
+	_, err = writer.Write(CmdInstream)
+	if err != nil {
+		return nil, fmt.Errorf("error while writing command to %s/%s: %w", c.network, c.address, err)
+	}
+	writer.Flush()
+
+	// The size (refered previously as '<length>') must be a byte[] of length 4 - representing a
+	// uint32 in a big-endian format (network byte order, tcp standard).
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, uint32(size))
+	_, err = writer.Write(b)
+	if err != nil {
+		return nil, fmt.Errorf("error while writing data length to %s/%s: %w", c.network, c.address, err)
+	}
+	writer.Flush()
+
+	// Streaming the data
+	_, err = reader.WriteTo(writer)
+	if err != nil {
+		resp, e := c.readResponse(conn)
+		if e != nil {
+			return nil, fmt.Errorf("error while streaming content to %s/%s: %w", c.network, c.address, err)
+		}
+		return resp, fmt.Errorf("error while streaming content to %s/%s: %w", c.network, c.address, err)
+	}
+
+	// Sending 4 bytes to signal the end of the transfer.
+	_, err = writer.Write([]byte{'\000', '\000', '\000', '\000'})
+	if err != nil {
+		return nil, fmt.Errorf("error while writing end of transfer signal to %s/%s: %w", c.network, c.address, err)
+	}
+	writer.Flush()
+
+	resp, err := c.readResponse(conn)
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.parseResponse(resp)
+	if err != nil {
+		return nil, fmt.Errorf("error from clamav: %w", err)
+	}
+
+	return resp, nil
+}
+
 // SendCommand will attempt send the given command to Clamd
 // over the network.
 // It will read the response and return it as a byte slice as well as any error
@@ -193,11 +264,11 @@ func (c *ClamavClient) readResponse(r io.Reader) ([]byte, error) {
 // and determine whether or not Clamav answered with an error.
 // See clamav/errors.go for a list of known errors.
 func (c *ClamavClient) parseResponse(msg []byte) error {
-	if bytes.Equal(msg, RespErrScanFileSizeLimitExceeded) {
+	if bytes.EqualFold(msg, RespErrScanFileSizeLimitExceeded) {
 		return ErrScanFileSizeLimitExceeded
 	}
 
-	if bytes.Contains(msg, []byte("FOUND")) {
+	if bytes.HasPrefix(msg, []byte("stream: ")) && bytes.HasSuffix(msg, []byte("FOUND")) {
 		return ErrVirusFound
 	}
 
