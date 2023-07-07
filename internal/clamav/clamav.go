@@ -66,7 +66,7 @@ func (c *ClamavClient) Version(ctx context.Context) ([]byte, error) {
 	}
 	defer conn.Close()
 
-	resp, err := c.SendCommand(conn, CmdVersionBytes)
+	resp, err := c.SendCommand(conn, CmdVersion)
 	if err != nil {
 		return nil, fmt.Errorf("error while sending command: %w", err)
 	}

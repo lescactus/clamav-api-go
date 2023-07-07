@@ -18,7 +18,7 @@ type ClamavCommand []byte
 
 var (
 	CmdPing            ClamavCommand = []byte("zPING\000")
-	CmdVersionBytes    ClamavCommand = []byte("zVERSION\000")
+	CmdVersion         ClamavCommand = []byte("zVERSION\000")
 	CmdReload          ClamavCommand = []byte("zRELOAD\000")
 	CmdInstream        ClamavCommand = []byte("zINSTREAM\000")
 	CmdStats           ClamavCommand = []byte("zSTATS\000")
