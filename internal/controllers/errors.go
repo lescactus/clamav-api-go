@@ -24,8 +24,8 @@ func NewErrorResponse(msg string) *ErrorResponse {
 }
 
 // SetErrorResponse will attempt to parse the given error
-// and make a response using the ResponseWriter according to the
-// type of the error.
+// and set the response status code and message using the ResponseWriter
+// according to the type of the error.
 func SetErrorResponse(w http.ResponseWriter, err error) {
 	if err == nil {
 		return
@@ -36,6 +36,9 @@ func SetErrorResponse(w http.ResponseWriter, err error) {
 	if isNetError(err) {
 		errResp = NewErrorResponse("something wrong happened while communicating with clamav")
 		w.WriteHeader(http.StatusBadGateway)
+	} else if errors.Is(err, ErrFormFile) || errors.Is(err, ErrOpenFileHeaders) {
+		errResp = NewErrorResponse("bad request: " + err.Error())
+		w.WriteHeader((http.StatusBadRequest))
 	} else {
 		switch err {
 		case clamav.ErrUnknownCommand:

@@ -123,21 +123,29 @@ func (m *MockClamav) Shutdown(ctx context.Context) error {
 }
 
 func (m *MockClamav) InStream(ctx context.Context, r io.Reader, size int64) ([]byte, error) {
-	panic("not implemented")
+	scenario := ctx.Value(MockScenario(""))
+
+	if scenario == ScenarioNoError {
+		return []byte("stream: OK"), nil
+	} else {
+		return nil, dispatchErrFromScenario(scenario.(MockScenario))
+	}
 }
 
 func dispatchErrFromScenario(scenario MockScenario) error {
 	switch scenario {
 	case ScenarioNetError:
-		return &net.OpError{}
+		return &net.OpError{Err: errors.New("network error")}
 	case ScenarioErrUnknownCommand:
-		return errors.New("unknown command sent to clamav")
+		return clamav.ErrUnknownCommand
 	case ScenarioErrUnknownResponse:
-		return errors.New("unknown response from clamav")
+		return clamav.ErrUnknownResponse
 	case ScenarioErrUnexpectedResponse:
-		return errors.New("unexpected response from clamav")
+		return clamav.ErrUnexpectedResponse
 	case ScenarioErrScanFileSizeLimitExceeded:
-		return errors.New("clamav: size limit exceeded")
+		return clamav.ErrScanFileSizeLimitExceeded
+	case ScenarioErrVirusFound:
+		return clamav.ErrVirusFound
 	default:
 		return nil
 	}
@@ -155,4 +163,6 @@ var (
 
 	ScenarioStatsErrMarshall           MockScenario = "statserrmarshall"
 	ScenarioVersionCommandsErrMarshall MockScenario = "versioncommandserrmarshall"
+
+	ScenarioErrVirusFound MockScenario = "virusfound"
 )
