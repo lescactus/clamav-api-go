@@ -24,7 +24,7 @@ func NewErrorResponse(msg string) *ErrorResponse {
 }
 
 // SetErrorResponse will attempt to parse the given error
-// and set the response status code and message using the ResponseWriter
+// and set the response status code and using the ResponseWriter
 // according to the type of the error.
 func SetErrorResponse(w http.ResponseWriter, err error) {
 	if err == nil {
