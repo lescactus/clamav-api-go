@@ -129,17 +129,22 @@ func (s *ClamdMockTCPServer) Stop() {
 }
 
 func (s *ClamdMockTCPServer) readFromConnection(conn net.Conn) ([]byte, int) {
-	buf := make([]byte, 4096)
+	buf := make([]byte, 1) // reading byte by byte
+	msg := make([]byte, 0)
+	i := 0
+
 	for {
 		n, err := conn.Read(buf)
+		i += n
+
 		if err != nil && err != io.EOF {
-			log.Println("read error", err)
-			return nil, 0
+			log.Fatalf("error while reading response: %s", err)
 		}
-		if n == 0 {
-			return nil, 0
+
+		msg = append(msg, buf[:n]...)
+		if err == io.EOF || n == 0 || bytes.HasSuffix(msg, []byte{'\000'}) || bytes.HasSuffix(msg, []byte{'\n'}) {
+			return msg, i
 		}
-		return buf, n
 	}
 
 }
@@ -147,6 +152,7 @@ func (s *ClamdMockTCPServer) readFromConnection(conn net.Conn) ([]byte, int) {
 func (s *ClamdMockTCPServer) handlerPing(conn net.Conn) {
 	defer conn.Close()
 
+	s.readFromConnection(conn)
 	fmt.Fprint(conn, "PONG\000")
 
 }
@@ -154,7 +160,7 @@ func (s *ClamdMockTCPServer) handlerPing(conn net.Conn) {
 func (s *ClamdMockTCPServer) handlerVersion(conn net.Conn) {
 	defer conn.Close()
 
-	//log.Printf("received from %v: %s", conn.RemoteAddr(), string(buf[:n]))
+	s.readFromConnection(conn)
 	fmt.Fprintf(conn, "ClamAV 1.0.1/26961/%s\000", time.Now().Format("Thu Jul  6 07:29:38 2023"))
 
 }
@@ -162,6 +168,7 @@ func (s *ClamdMockTCPServer) handlerVersion(conn net.Conn) {
 func (s *ClamdMockTCPServer) handlerReload(conn net.Conn) {
 	defer conn.Close()
 
+	s.readFromConnection(conn)
 	fmt.Fprint(conn, "RELOADING\000")
 }
 
@@ -195,6 +202,7 @@ func (s *ClamdMockTCPServer) handlerVersionCommands(conn net.Conn) {
 
 func (s *ClamdMockTCPServer) handlerShutdown(conn net.Conn) {
 	defer conn.Close()
+	s.readFromConnection(conn)
 }
 
 var (
@@ -203,9 +211,7 @@ var (
 	tooLongFile = `db94dcc6543c3b1fe3c3ca1948c5ac465998d7ac830535dd54f385142182072152000e398c4554133ca3038467f976d654d23bb3a7480a01bb681d8f6be8ce6az`
 )
 
-func (s *ClamdMockTCPServer) handlerInStreamGoodFile(conn net.Conn) {
-	defer conn.Close()
-
+func (s *ClamdMockTCPServer) readInStreamCmd(conn net.Conn) []byte {
 	// Clamav expects a stream of chunks. The format of the chunk is: '<length><data>'
 	// where <length> is the size of the following data in bytes expressed as a 4 byte unsigned
 	// integer in network byte order and <data> is the actual chunk.
@@ -227,50 +233,29 @@ func (s *ClamdMockTCPServer) handlerInStreamGoodFile(conn net.Conn) {
 
 		msg = append(msg, buf[:n]...)
 		if err == io.EOF || n == 0 || bytes.HasSuffix(msg, []byte{'\000', '\000', '\000', '\000'}) {
-			break
+			return msg
 		}
 	}
+}
 
+func (s *ClamdMockTCPServer) handlerInStreamGoodFile(conn net.Conn) {
+	defer conn.Close()
+
+	s.readInStreamCmd(conn)
 	fmt.Fprint(conn, "stream: OK\000")
 }
 
 func (s *ClamdMockTCPServer) handlerInStreamBadFile(conn net.Conn) {
 	defer conn.Close()
-	buf := make([]byte, 64)
-	msg := make([]byte, 0)
 
-	for {
-		n, err := conn.Read(buf)
-		if err != nil && err != io.EOF {
-			log.Fatalf("error while reading response: %s", err)
-		}
-
-		msg = append(msg, buf[:n]...)
-		if err == io.EOF || n == 0 || bytes.HasSuffix(msg, []byte{'\000', '\000', '\000', '\000'}) {
-			break
-		}
-	}
-
+	s.readInStreamCmd(conn)
 	fmt.Fprint(conn, "stream: Win.Test.EICAR_HDB-1 FOUND\000")
 }
 
 func (s *ClamdMockTCPServer) handlerInStreamTooLongFile(conn net.Conn) {
 	defer conn.Close()
 
-	buf := make([]byte, 64)
-	msg := make([]byte, 0)
-
-	for {
-		n, err := conn.Read(buf)
-		if err != nil && err != io.EOF {
-			log.Fatalf("error while reading response: %s", err)
-		}
-
-		msg = append(msg, buf[:n]...)
-		if err == io.EOF || n == 0 || bytes.HasSuffix(msg, []byte{'\000', '\000', '\000', '\000'}) {
-			break
-		}
-	}
+	msg := s.readInStreamCmd(conn)
 	// Get file size. It's 4 bytes after the Command
 	fsize := msg[len(CmdInstream) : len(CmdInstream)+4]
 	size := binary.BigEndian.Uint32(fsize)
