@@ -4,7 +4,9 @@ runs:
   using: "composite"
   steps:
     - name: Setup Kubernetes
-      uses: engineerd/setup-kind@v0.5.0
+      uses: nolar/setup-k3d-k3s@v1
+      with:
+        version: v1.27
      
     - name: Debug
       shell: bash
