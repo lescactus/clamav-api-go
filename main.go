@@ -64,6 +64,7 @@ func main() {
 
 	r.Handler(http.MethodGet, "/rest/v1/ping", c.ThenFunc(h.Ping))
 	r.Handler(http.MethodGet, "/rest/v1/version", c.ThenFunc(h.Version))
+	r.Handler(http.MethodPost, "/rest/v1/reload", c.ThenFunc(h.Reload))
 
 	if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Fatal().Err(err).Msg("Startup failed")
