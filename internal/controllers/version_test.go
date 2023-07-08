@@ -95,7 +95,7 @@ func TestHandlerVersion(t *testing.T) {
 			handler := http.HandlerFunc(h.Version)
 
 			ctx := context.WithValue(context.Background(), MockScenario(""), tt.args.scenario)
-			req, err := http.NewRequestWithContext(ctx, "GET", "/rest/v1/version ", nil)
+			req, err := http.NewRequestWithContext(ctx, "GET", "/rest/v1/version", nil)
 			if err != nil {
 				t.Fatal(err)
 			}

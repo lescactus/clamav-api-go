@@ -2,8 +2,6 @@ package controllers
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,11 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type fakeValue struct{}
-
-func (f fakeValue) MarshalJSON() ([]byte, error) { return nil, errors.New("") }
-
-func TestHandlerStats(t *testing.T) {
+func TestHandlerVersionCommands(t *testing.T) {
 	logger := zerolog.New(io.Discard)
 	mockClamav := &MockClamav{}
 
@@ -41,7 +35,7 @@ func TestHandlerStats(t *testing.T) {
 			},
 			want: want{
 				status: http.StatusOK,
-				body:   []byte(`{"pools":1,"state":"VALID PRIMARY","threads":"live 1  idle 0 max 10 idle-timeout 30","queue":"0 items\n\tSTATS 0.000086 ","memstats":"heap N/A mmap N/A used N/A free N/A releasable N/A pools 1 pools_used 1306.837M pools_total 1306.882M"}`),
+				body:   []byte(`{"clamav_version":"ClamAV 1.0.1/26963/Sat Jul  8 07:27:53 2023","commands":["SCAN","QUIT","RELOAD","PING","CONTSCAN","VERSIONCOMMANDS","VERSION","END","SHUTDOWN","MULTISCAN","FILDES","STATS","IDSESSION","INSTREAM","DETSTATSCLEAR","DETSTATS","ALLMATCHSCAN"]}`),
 			},
 		},
 		{
@@ -95,13 +89,13 @@ func TestHandlerStats(t *testing.T) {
 			},
 		},
 		{
-			name: "error is ErrParsingStats",
+			name: "error is VersionCommandsErrMarshall",
 			args: args{
-				scenario: ScenarioStatsErrMarshall,
+				scenario: ScenarioVersionCommandsErrMarshall,
 			},
 			want: want{
 				status: http.StatusInternalServerError,
-				body:   []byte(fmt.Sprintf(`{"status":"error","msg":"%s"}`, ErrParsingStats)),
+				body:   []byte(`{"status":"error","msg":"error while parsing 'versioncommands'"}`),
 			},
 		},
 	}
@@ -109,10 +103,10 @@ func TestHandlerStats(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := NewHandler(&logger, mockClamav)
 			rr := httptest.NewRecorder()
-			handler := http.HandlerFunc(h.Stats)
+			handler := http.HandlerFunc(h.VersionCommands)
 
 			ctx := context.WithValue(context.Background(), MockScenario(""), tt.args.scenario)
-			req, err := http.NewRequestWithContext(ctx, "GET", "/rest/v1/stats", nil)
+			req, err := http.NewRequestWithContext(ctx, "GET", "/rest/v1/versioncommands", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -129,14 +123,14 @@ func TestHandlerStats(t *testing.T) {
 	}
 }
 
-func TestStatsMarshall(t *testing.T) {
+func TestVersionCommandsMarshall(t *testing.T) {
 	type args struct {
-		s string
+		v string
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    *StatsResponse
+		want    *VersionCommandsResponse
 		wantErr bool
 	}{
 		{
@@ -147,97 +141,35 @@ func TestStatsMarshall(t *testing.T) {
 		},
 		{
 			name: "valid input",
-			args: args{
-				s: `POOLS: 1
-
-STATE: VALID PRIMARY
-THREADS: live 1  idle 0 max 10 idle-timeout 30
-QUEUE: 0 items
-	STATS 0.000042
-
-MEMSTATS: heap N/A mmap N/A used N/A free N/A releasable N/A pools 1 pools_used 713.137M pools_total 713.226M
-END
-				`,
-			},
-			want: &StatsResponse{
-				Pools:    1,
-				State:    "VALID PRIMARY",
-				Threads:  "live 1  idle 0 max 10 idle-timeout 30",
-				Queue:    "0 items\n\tSTATS 0.000042",
-				Memstats: "heap N/A mmap N/A used N/A free N/A releasable N/A pools 1 pools_used 713.137M pools_total 713.226M",
+			args: args{"ClamAV 1.0.0/26804/Mon Feb  6 08:47:07 2023| COMMANDS: SCAN QUIT RELOAD PING"},
+			want: &VersionCommandsResponse{
+				Version:  "ClamAV 1.0.0/26804/Mon Feb  6 08:47:07 2023",
+				Commands: []string{"SCAN", "QUIT", "RELOAD", "PING"},
 			},
 			wantErr: false,
 		},
 		{
-			name: "invalid input - 01",
-			args: args{
-				s: `POOLS: : 1
-END
-				`,
-			},
+			name:    "invalid input - 01",
+			args:    args{"ClamAV 1.0.0/26804/Mon Feb  6 08:47:07 2023"},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name: "invalid input - 02",
-			args: args{
-				s: `STATE: : 1
-END
-				`,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid input - 03",
-			args: args{
-				s: `THREADS: : 1
-END
-				`,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid input - 04",
-			args: args{
-				s: `MEMSTATS: : 1
-END
-				`,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid input - 05",
-			args: args{
-				s: `QUEUE: : 1
-END
-				`,
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "invalid input - 06",
-			args: args{
-				s: `POOLS: str
-END
-				`,
-			},
+			name:    "invalid input - 02",
+			args:    args{"invalid input"},
 			want:    nil,
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := statsMarshall(tt.args.s)
+			got, err := versionCommandsMarshall(tt.args.v)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("statsMarshall() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("versionCommandsMarshall() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("statsMarshall() = %v, want %v", got, tt.want)
+				t.Errorf("versionCommandsMarshall() = %v, want %v", got, tt.want)
 			}
 		})
 	}

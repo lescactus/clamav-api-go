@@ -95,7 +95,7 @@ func TestHandlerReload(t *testing.T) {
 			handler := http.HandlerFunc(h.Reload)
 
 			ctx := context.WithValue(context.Background(), MockScenario(""), tt.args.scenario)
-			req, err := http.NewRequestWithContext(ctx, "POST", "/rest/v1/reload ", nil)
+			req, err := http.NewRequestWithContext(ctx, "POST", "/rest/v1/reload", nil)
 			if err != nil {
 				t.Fatal(err)
 			}

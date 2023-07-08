@@ -92,7 +92,7 @@ QUEUE: 0 items
 MEMSTATS: heap N/A mmap N/A used N/A free N/A releasable N/A pools 1 pools_used 1306.837M pools_total 1306.882M
 END`
 		return []byte(resp), nil
-	} else if scenario == ScenarioStatsErrUnmarshall {
+	} else if scenario == ScenarioStatsErrMarshall {
 		resp := `POOLS: POOLS: POOLS: some invalid stats`
 		return []byte(resp), nil
 	} else {
@@ -101,7 +101,15 @@ END`
 }
 
 func (m *MockClamav) VersionCommands(ctx context.Context) ([]byte, error) {
-	panic("not implemented")
+	scenario := ctx.Value(MockScenario(""))
+
+	if scenario == ScenarioNoError {
+		return []byte("ClamAV 1.0.1/26963/Sat Jul  8 07:27:53 2023| COMMANDS: SCAN QUIT RELOAD PING CONTSCAN VERSIONCOMMANDS VERSION END SHUTDOWN MULTISCAN FILDES STATS IDSESSION INSTREAM DETSTATSCLEAR DETSTATS ALLMATCHSCAN"), nil
+	} else if scenario == ScenarioVersionCommandsErrMarshall {
+		return []byte("Some unparsable VERSIONCOMMANS output"), nil
+	} else {
+		return nil, dispatchErrFromScenario(scenario.(MockScenario))
+	}
 }
 
 func (m *MockClamav) Shutdown(ctx context.Context) error {
@@ -139,5 +147,6 @@ var (
 	ScenarioErrUnexpectedResponse        MockScenario = "unexpectedresponse"
 	ScenarioErrScanFileSizeLimitExceeded MockScenario = "scanfilesizelimitexceeded"
 
-	ScenarioStatsErrUnmarshall MockScenario = "statserrunmarshall"
+	ScenarioStatsErrMarshall           MockScenario = "statserrmarshall"
+	ScenarioVersionCommandsErrMarshall MockScenario = "versioncommandserrmarshall"
 )

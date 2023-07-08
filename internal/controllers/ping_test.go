@@ -95,7 +95,7 @@ func TestHandlerPing(t *testing.T) {
 			handler := http.HandlerFunc(h.Ping)
 
 			ctx := context.WithValue(context.Background(), MockScenario(""), tt.args.scenario)
-			req, err := http.NewRequestWithContext(ctx, "GET", "/rest/v1/ping ", nil)
+			req, err := http.NewRequestWithContext(ctx, "GET", "/rest/v1/ping", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
