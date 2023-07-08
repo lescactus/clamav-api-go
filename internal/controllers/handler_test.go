@@ -79,7 +79,25 @@ func (m *MockClamav) Reload(ctx context.Context) error {
 }
 
 func (m *MockClamav) Stats(ctx context.Context) ([]byte, error) {
-	panic("not implemented")
+	scenario := ctx.Value(MockScenario(""))
+
+	if scenario == ScenarioNoError {
+		resp := `POOLS: 1
+
+STATE: VALID PRIMARY
+THREADS: live 1  idle 0 max 10 idle-timeout 30
+QUEUE: 0 items
+	STATS 0.000086 
+
+MEMSTATS: heap N/A mmap N/A used N/A free N/A releasable N/A pools 1 pools_used 1306.837M pools_total 1306.882M
+END`
+		return []byte(resp), nil
+	} else if scenario == ScenarioStatsErrUnmarshall {
+		resp := `POOLS: POOLS: POOLS: some invalid stats`
+		return []byte(resp), nil
+	} else {
+		return nil, dispatchErrFromScenario(scenario.(MockScenario))
+	}
 }
 
 func (m *MockClamav) VersionCommands(ctx context.Context) ([]byte, error) {
@@ -120,4 +138,6 @@ var (
 	ScenarioErrUnknownResponse           MockScenario = "unknownresponse"
 	ScenarioErrUnexpectedResponse        MockScenario = "unexpectedresponse"
 	ScenarioErrScanFileSizeLimitExceeded MockScenario = "scanfilesizelimitexceeded"
+
+	ScenarioStatsErrUnmarshall MockScenario = "statserrunmarshall"
 )
