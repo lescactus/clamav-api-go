@@ -216,6 +216,9 @@ func (c *ClamavClient) InStream(ctx context.Context, r io.Reader, size int64) ([
 
 	err = c.parseResponse(resp)
 	if err != nil {
+		if err == ErrVirusFound {
+			return resp, err
+		}
 		return nil, fmt.Errorf("error from clamav: %w", err)
 	}
 

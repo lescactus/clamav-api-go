@@ -483,7 +483,7 @@ func TestClamavClientInStream(t *testing.T) {
 		time.Second, time.Second)
 
 	resp, err = c.InStream(context.Background(), strings.NewReader(badFile), int64(len(badFile)))
-	assert.True(t, bytes.Contains([]byte("FOUND"), resp))
+	assert.True(t, bytes.Contains(resp, []byte("FOUND")))
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrVirusFound)
 

@@ -139,7 +139,7 @@ func TestHandlerInStream(t *testing.T) {
 			},
 			want: want{
 				status: http.StatusOK,
-				body:   []byte(`{"status":"error","msg":"file contains potential virus","signature":"","virus_found":true}`),
+				body:   []byte(`{"status":"error","msg":"file contains potential virus","signature":"Win.Test.EICAR_HDB-1","virus_found":true}`),
 			},
 		},
 		{

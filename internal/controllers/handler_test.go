@@ -127,6 +127,8 @@ func (m *MockClamav) InStream(ctx context.Context, r io.Reader, size int64) ([]b
 
 	if scenario == ScenarioNoError {
 		return []byte("stream: OK"), nil
+	} else if scenario == ScenarioErrVirusFound {
+		return []byte("stream: Win.Test.EICAR_HDB-1 FOUND"), clamav.ErrVirusFound
 	} else {
 		return nil, dispatchErrFromScenario(scenario.(MockScenario))
 	}
