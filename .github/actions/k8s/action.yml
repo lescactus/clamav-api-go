@@ -29,6 +29,7 @@ runs:
         verbosity: debug
 
     - name: Troubleshooting
+      if: always()
       shell: bash
       run: |
         kubectl get events --sort-by='.metadata.creationTimestamp'
