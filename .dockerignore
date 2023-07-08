@@ -2,6 +2,8 @@ Dockerfile
 main
 clamav-api-go
 tmp/
+deploy/
 LICENSE
+skaffold.yaml
 # All dotfiles
 .*

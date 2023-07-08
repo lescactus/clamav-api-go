@@ -1,0 +1,31 @@
+name: "Bootstrap service"
+description: "Bootstrap a Kubernetes cluster with kind and execute skaffold"
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Kubernetes
+      uses: nolar/setup-k3d-k3s@v1
+      with:
+        version: v1.27
+     
+    - name: Debug
+      shell: bash
+      run: |
+        kubectl cluster-info
+        kubectl get pods -A
+        echo "current-context:" $(kubectl config current-context)
+        echo "environment-kubeconfig:" ${KUBECONFIG}
+    
+    - name: Cache skaffold image builds & config
+      uses: actions/cache@v3
+      with:
+        path: ~/.skaffold/
+        key: fixed
+    
+    - name: Skaffold run
+      uses: hiberbee/github-action-skaffold@1.27.0
+      with:
+        skaffold-version: 2.2.0
+        command: run
+        verbosity: warning #debug
+
