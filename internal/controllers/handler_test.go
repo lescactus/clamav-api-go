@@ -49,7 +49,13 @@ type MockClamav struct{}
 var _ clamav.Clamaver = (*MockClamav)(nil)
 
 func (m *MockClamav) Ping(ctx context.Context) ([]byte, error) {
-	panic("not implemented")
+	scenario := ctx.Value(MockScenario(""))
+
+	if scenario == ScenarioNoError {
+		return []byte("PONG"), nil
+	} else {
+		return nil, dispatchErrFromScenario(scenario.(MockScenario))
+	}
 }
 
 func (m *MockClamav) Version(ctx context.Context) ([]byte, error) {

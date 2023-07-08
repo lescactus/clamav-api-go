@@ -62,6 +62,7 @@ func main() {
 	c = c.Append(hlog.UserAgentHandler("user_agent"))
 	c = c.Append(hlog.RequestIDHandler("req_id", "X-Request-ID"))
 
+	r.Handler(http.MethodGet, "/rest/v1/ping", c.ThenFunc(h.Ping))
 	r.Handler(http.MethodGet, "/rest/v1/version", c.ThenFunc(h.Version))
 
 	if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {

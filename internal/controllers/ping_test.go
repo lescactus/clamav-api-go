@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHandlerVersion(t *testing.T) {
+func TestHandlerPing(t *testing.T) {
 	logger := zerolog.New(io.Discard)
 	mockClamav := &MockClamav{}
 
@@ -34,7 +34,7 @@ func TestHandlerVersion(t *testing.T) {
 			},
 			want: want{
 				status: http.StatusOK,
-				body:   []byte(`{"clamav_version":"ClamAV 1.0.1/26961/Thu Jul  6 07:29:38 2023"}`),
+				body:   []byte(`{"ping":"PONG"}`),
 			},
 		},
 		{
@@ -92,10 +92,10 @@ func TestHandlerVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := NewHandler(&logger, mockClamav)
 			rr := httptest.NewRecorder()
-			handler := http.HandlerFunc(h.Version)
+			handler := http.HandlerFunc(h.Ping)
 
 			ctx := context.WithValue(context.Background(), MockScenario(""), tt.args.scenario)
-			req, err := http.NewRequestWithContext(ctx, "GET", "/rest/v1/version ", nil)
+			req, err := http.NewRequestWithContext(ctx, "GET", "/rest/v1/ping ", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
