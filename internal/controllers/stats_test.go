@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,10 +12,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
-
-type fakeValue struct{}
-
-func (f fakeValue) MarshalJSON() ([]byte, error) { return nil, errors.New("") }
 
 func TestHandlerStats(t *testing.T) {
 	logger := zerolog.New(io.Discard)

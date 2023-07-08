@@ -113,7 +113,13 @@ func (m *MockClamav) VersionCommands(ctx context.Context) ([]byte, error) {
 }
 
 func (m *MockClamav) Shutdown(ctx context.Context) error {
-	panic("not implemented")
+	scenario := ctx.Value(MockScenario(""))
+
+	if scenario == ScenarioNoError {
+		return nil
+	} else {
+		return dispatchErrFromScenario(scenario.(MockScenario))
+	}
 }
 
 func (m *MockClamav) InStream(ctx context.Context, r io.Reader, size int64) ([]byte, error) {
