@@ -25,6 +25,7 @@ runs:
     - name: Skaffold run
       uses: hiberbee/github-action-skaffold@1.27.0
       with:
+        skaffold-version: 2.2.0
         command: run --no-prune=true
         verbosity: debug
 
@@ -35,5 +36,5 @@ runs:
         kubectl get events --sort-by='.metadata.creationTimestamp'
         kubectl get all
         sleep 10
-        kubectl logs -f deploy/clamav-api --all-containers --prefix
+        kubectl logs deploy/clamav-api --all-containers --prefix
 
