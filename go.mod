@@ -1,6 +1,6 @@
 module github.com/lescactus/clamav-api-go
 
-go 1.20
+go 1.17
 
 require (
 	github.com/gorilla/handlers v1.5.1
