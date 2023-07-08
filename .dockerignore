@@ -1,0 +1,7 @@
+Dockerfile
+main
+clamav-api-go
+tmp/
+LICENSE
+# All dotfiles
+.*
