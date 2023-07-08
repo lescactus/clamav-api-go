@@ -25,4 +25,5 @@ runs:
     - name: Skaffold run
       uses: hiberbee/github-action-skaffold@1.27.0
       with:
-        command: run
+        command: run -v debug
+
