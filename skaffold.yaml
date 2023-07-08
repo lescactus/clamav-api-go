@@ -1,0 +1,26 @@
+apiVersion: skaffold/v2beta28
+kind: Config
+metadata:
+  name: clamav-api
+build:
+  local:
+    push: false
+  artifacts:
+  - image: clamav-api
+    docker:
+      dockerfile: Dockerfile
+  tagPolicy:
+    dateTime:
+      format: 2006-01-02_15-04-05.999_MST
+# Allow running unit tests before a run
+test:
+  - image: clamav-api
+    custom:
+    - command: go test ./...
+deploy:
+  kubectl:
+    manifests:
+    - deploy/k8s/configmap.yaml
+    - deploy/k8s/deployment.yaml
+    - deploy/k8s/service.yaml
+    - deploy/k8s/serviceaccount.yaml
