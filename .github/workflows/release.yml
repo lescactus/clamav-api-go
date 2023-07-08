@@ -6,9 +6,6 @@ on:
     tags:
       - '*'
 
-permissions:
-  contents: write
-
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
@@ -51,8 +48,7 @@ jobs:
       with:
         # list of Docker images to use as base name for tags
         images: |
-          lescactus/clamav-api
-          ghcr.io/lescactus/clamav-api
+          ghcr.io/lescactus/clamav-api-go
         # generate Docker tags based on the following events/attributes
         tags: |
           type=ref,event=branch
@@ -66,7 +62,7 @@ jobs:
       uses: docker/login-action@v2
       with:
         registry: ghcr.io
-        username: lescactus
+        username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Set up Docker Buildx
@@ -81,4 +77,4 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         labels: ${{ steps.meta.outputs.labels }}
-        tags: lescactus/clamav-api:latest,${{ steps.meta.outputs.tags }}
+        tags: ${{ steps.meta.outputs.tags }}
