@@ -1,6 +1,10 @@
 package controllers
 
 import (
+	"context"
+	"errors"
+	"io"
+	"net"
 	"reflect"
 	"testing"
 
@@ -39,3 +43,69 @@ func TestNewHandler(t *testing.T) {
 		})
 	}
 }
+
+type MockClamav struct{}
+
+var _ clamav.Clamaver = (*MockClamav)(nil)
+
+func (m *MockClamav) Ping(ctx context.Context) ([]byte, error) {
+	panic("not implemented")
+}
+
+func (m *MockClamav) Version(ctx context.Context) ([]byte, error) {
+	scenario := ctx.Value(MockScenario(""))
+
+	if scenario == ScenarioNoError {
+		return []byte("ClamAV 1.0.1/26961/Thu Jul  6 07:29:38 2023"), nil
+	} else {
+		return nil, dispatchErrFromScenario(scenario.(MockScenario))
+	}
+}
+
+func (m *MockClamav) Reload(ctx context.Context) error {
+	panic("not implemented")
+}
+
+func (m *MockClamav) Stats(ctx context.Context) ([]byte, error) {
+	panic("not implemented")
+}
+
+func (m *MockClamav) VersionCommands(ctx context.Context) ([]byte, error) {
+	panic("not implemented")
+}
+
+func (m *MockClamav) Shutdown(ctx context.Context) error {
+	panic("not implemented")
+}
+
+func (m *MockClamav) InStream(ctx context.Context, r io.Reader, size int64) ([]byte, error) {
+	panic("not implemented")
+}
+
+func dispatchErrFromScenario(scenario MockScenario) error {
+	switch scenario {
+	case ScenarioNetError:
+		return &net.OpError{}
+	case ScenarioErrUnknownCommand:
+		return errors.New("unknown command sent to clamav")
+	case ScenarioErrUnknownResponse:
+		return errors.New("unknown response from clamav")
+	case ScenarioErrUnexpectedResponse:
+		return errors.New("unexpected response from clamav")
+	case ScenarioErrScanFileSizeLimitExceeded:
+		return errors.New("clamav: size limit exceeded")
+	default:
+		return nil
+	}
+}
+
+type MockScenario string
+
+var (
+	ScenarioNoError                      MockScenario = "noerror"
+	ScenarioNetError                     MockScenario = "neterror"
+	ScenarioErrUnknownCommand            MockScenario = "unknowncommand"
+	ScenarioErrUnknownResponse           MockScenario = "unknownresponse"
+	ScenarioErrUnexpectedResponse        MockScenario = "unexpectedresponse"
+	ScenarioErrScanFileSizeLimitExceeded MockScenario = "scanfilesizelimitexceeded"
+)

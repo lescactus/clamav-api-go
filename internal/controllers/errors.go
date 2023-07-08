@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net"
 	"net/http"
+
+	"github.com/lescactus/clamav-api-go/internal/clamav"
 )
 
 // ErrorResponse represents the json response
@@ -35,8 +37,23 @@ func SetErrorResponse(w http.ResponseWriter, err error) {
 		errResp = NewErrorResponse("something wrong happened while communicating with clamav")
 		w.WriteHeader(http.StatusBadGateway)
 	} else {
-		errResp = NewErrorResponse(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
+		switch err {
+		case clamav.ErrUnknownCommand:
+			errResp = NewErrorResponse("unknown command sent to clamav")
+			w.WriteHeader((http.StatusInternalServerError))
+		case clamav.ErrUnknownResponse:
+			errResp = NewErrorResponse(err.Error())
+			w.WriteHeader((http.StatusInternalServerError))
+		case clamav.ErrUnexpectedResponse:
+			errResp = NewErrorResponse(err.Error())
+			w.WriteHeader((http.StatusInternalServerError))
+		case clamav.ErrScanFileSizeLimitExceeded:
+			errResp = NewErrorResponse("clamav: " + err.Error())
+			w.WriteHeader((http.StatusInternalServerError))
+		default:
+			errResp = NewErrorResponse(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	}
 
 	resp, _ := json.Marshal(errResp)

@@ -83,7 +83,6 @@ func TestIsNetError(t *testing.T) {
 
 func TestSetErrorResponse(t *testing.T) {
 	type args struct {
-		//w   http.ResponseWriter
 		err error
 	}
 	type want struct {
