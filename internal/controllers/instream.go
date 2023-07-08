@@ -31,7 +31,7 @@ func (h *Handler) InStream(w http.ResponseWriter, r *http.Request) {
 	// Parsing the Multipart file
 	_, hd, err := r.FormFile("file")
 	if err != nil {
-		e := fmt.Errorf("%w: %w", ErrFormFile, err)
+		e := fmt.Errorf("%w: %v", ErrFormFile, err)
 		h.Logger.Debug().Str("req_id", req_id.String()).Msgf("%v", e)
 
 		SetErrorResponse(w, e)
@@ -40,7 +40,7 @@ func (h *Handler) InStream(w http.ResponseWriter, r *http.Request) {
 
 	f, err := hd.Open()
 	if err != nil {
-		e := fmt.Errorf("%w: %w", ErrOpenFileHeaders, err)
+		e := fmt.Errorf("%w: %v", ErrOpenFileHeaders, err)
 		h.Logger.Debug().Str("req_id", req_id.String()).Msgf("%v", e)
 
 		SetErrorResponse(w, e)
