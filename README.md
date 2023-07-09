@@ -232,6 +232,7 @@ Note: You can change and customize the `clamd.conf` in `deploy/k8s/configmap.yam
     "server_read_timeout": "30s",
     "server_read_header_timeout": "10s",
     "server_write_timeout": "30s",
+    "server_max_request_size": 10485760,
     "logger_log_level": "debug",
     "logger_duration_field_unit": "ms",
     "logger_format": "console",
@@ -251,6 +252,7 @@ server_addr: :8080
 server_read_timeout: 30s
 server_read_header_timeout: 10s
 server_write_timeout: 30s
+server_max_request_size: 10485760
 logger_log_level: debug
 logger_duration_field_unit: ms
 logger_format: console
@@ -269,6 +271,7 @@ SERVER_ADDR=:8080
 SERVER_READ_TIMEOUT=30s
 SERVER_READ_HEADER_TIMEOUT=10s
 SERVER_WRITE_TIMEOUT=30s
+SERVER_MAX_REQUEST_SIZE=10485760
 LOGGER_LOG_LEVEL=debug
 LOGGER_DURATION_FIELD_UNIT=s
 LOGGER_FORMAT=console
@@ -289,6 +292,7 @@ It is the same variables as in the `config.env`
 `SERVER_READ_TIMEOUT` | `30s` | Maximum duration for the http server to read the entire request, including the body. A zero or negative value means there will be no timeout. 
 `SERVER_READ_HEADER_TIMEOUT` | `10s` | Amount of time the http server allow to read request headers. If the value is zero, the value of `SERVER_READ_TIMEOUT` is used. If both are zero, there is no timeout
 `SERVER_WRITE_TIMEOUT` | `30s` | Maximum duration before the http server times out writes of the response. A zero or negative value means there will be no timeout
+`SERVER_MAX_REQUEST_SIZE` | `10485760` (10MiB) | Maximum size of a client request, including headers and body
 `LOGGER_LOG_LEVEL` | `info` | Log level. Available: `trace`, `debug`, `info`, `warn`, `error`, `fatal` and `panic`. [Ref](https://pkg.go.dev/github.com/rs/zerolog@v1.26.1#pkg-variables)
 `LOGGER_DURATION_FIELD_UNIT` | `ms` | Defines the unit for `time.Duration` type fields in the logger. Available: `ms`, `millisecond`, `s`, `second`
 `LOGGER_FORMAT` | `json` | Format of the logs. Can be either `json` or `console`

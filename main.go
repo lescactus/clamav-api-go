@@ -9,8 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	_ "net/http/pprof" // Register the pprof handlers
-
 	"github.com/gorilla/handlers"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
@@ -20,12 +18,6 @@ import (
 	"github.com/lescactus/clamav-api-go/internal/logger"
 	"github.com/rs/zerolog/hlog"
 )
-
-func init() {
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-}
 
 func main() {
 	// Get application configuration
@@ -77,6 +69,7 @@ func main() {
 	c = c.Append(hlog.RemoteAddrHandler("remote_client"))
 	c = c.Append(hlog.UserAgentHandler("user_agent"))
 	c = c.Append(hlog.RequestIDHandler("req_id", "X-Request-ID"))
+	c = c.Append(controllers.MaxReqSize(cfg.ServerMaxRequestSize))
 
 	r.Handler(http.MethodGet, "/rest/v1/ping", c.ThenFunc(h.Ping))
 	r.Handler(http.MethodGet, "/rest/v1/version", c.ThenFunc(h.Version))

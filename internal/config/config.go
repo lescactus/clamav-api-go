@@ -25,6 +25,7 @@ var (
 	defaultServerReadTimeout       = 30 * time.Second
 	defaultServerReadHeaderTimeout = 10 * time.Second
 	defaultServerWriteTimeout      = 30 * time.Second
+	defaultServerMaxRequestSize    = int64(10 * 1024 * 1024) // 10MiB
 
 	defaultLoggerLogLevel          = "info"
 	defaultLoggerDurationFieldUnit = "ms"
@@ -48,6 +49,9 @@ type App struct {
 
 	// Maximum duration before the http server times out writes of the response
 	ServerWriteTimeout time.Duration `json:"server_write_timeout" yaml:"server_write_timeout" mapstructure:"SERVER_WRITE_TIMEOUT"`
+
+	// Maximum size of a client request, including headers and body
+	ServerMaxRequestSize int64 `json:"server_max_request_size" yaml:"server_max_request_size" mapstructure:"SERVER_MAX_REQUEST_SIZE"`
 
 	// Logger log level
 	// Available: "trace", "debug", "info", "warn", "error", "fatal", "panic"
@@ -161,6 +165,7 @@ func (config *App) setDefaults() {
 	config.ServerReadTimeout = defaultServerReadTimeout
 	config.ServerReadHeaderTimeout = defaultServerReadHeaderTimeout
 	config.ServerWriteTimeout = defaultServerWriteTimeout
+	config.ServerMaxRequestSize = defaultServerMaxRequestSize
 
 	config.LoggerLogLevel = defaultLoggerLogLevel
 	config.LoggerDurationFieldUnit = defaultLoggerDurationFieldUnit
