@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -16,19 +17,22 @@ import (
 
 func main() {
 	// Get application configuration
-	cfg := config.New()
+	cfg, err := config.New()
+	if err != nil {
+		log.Fatalf("unable to build a new app config: %v", err)
+	}
 
 	logger := logger.New(
-		cfg.GetString("LOGGER_LOG_LEVEL"),
-		cfg.GetString("LOGGER_DURATION_FIELD_UNIT"),
-		cfg.GetString("LOGGER_FORMAT"),
+		cfg.LoggerLogLevel,
+		cfg.LoggerDurationFieldUnit,
+		cfg.LoggerFormat,
 	)
 
 	client := clamav.NewClamavClient(
-		cfg.GetString("CLAMAV_ADDR"),
-		cfg.GetString("CLAMAV_NETWORK"),
-		cfg.GetDuration("CLAMAV_TIMEOUT"),
-		cfg.GetDuration("CLAMAV_KEEPALIVE"),
+		cfg.ClamavAddr,
+		cfg.ClamavNetwork,
+		cfg.ClamavTimeout,
+		cfg.ClamavKeepAlive,
 	)
 
 	// Create http router, server and handler controller
@@ -36,11 +40,11 @@ func main() {
 	h := controllers.NewHandler(logger, client)
 	c := alice.New()
 	s := &http.Server{
-		Addr:              cfg.GetString("APP_ADDR"),
+		Addr:              cfg.ServerAddr,
 		Handler:           handlers.RecoveryHandler(handlers.PrintRecoveryStack(true))(r), // recover from panics and print recovery stack
-		ReadTimeout:       cfg.GetDuration("SERVER_READ_TIMEOUT"),
-		ReadHeaderTimeout: cfg.GetDuration("SERVER_READ_HEADER_TIMEOUT"),
-		WriteTimeout:      cfg.GetDuration("SERVER_WRITE_TIMEOUT"),
+		ReadTimeout:       cfg.ServerReadTimeout,
+		ReadHeaderTimeout: cfg.ServerReadHeaderTimeout,
+		WriteTimeout:      cfg.ServerWriteTimeout,
 	}
 
 	// logger fields
@@ -70,7 +74,7 @@ func main() {
 	r.Handler(http.MethodPost, "/rest/v1/shutdown", c.ThenFunc(h.Shutdown))
 	r.Handler(http.MethodPost, "/rest/v1/scan", c.ThenFunc(h.InStream))
 
-	logger.Info().Msgf("Starting server %s on address %s ...", config.AppName, cfg.GetString("APP_ADDR"))
+	logger.Info().Msgf("Starting server %s on address %s ...", config.AppName, cfg.ServerAddr)
 	if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Fatal().Err(err).Msg("Startup failed")
 	}
