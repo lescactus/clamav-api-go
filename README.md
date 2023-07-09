@@ -2,6 +2,8 @@
 
 [![build and test](https://github.com/lescactus/clamav-api-go/actions/workflows/go.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/go.yaml) [![Kubernetes](https://github.com/lescactus/clamav-api-go/actions/workflows/k8s.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/k8s.yaml) [![Release](https://github.com/lescactus/clamav-api-go/actions/workflows/release.yml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/release.yml)
 
+![go](https://img.shields.io/badge/go->=1.17-blue) ![skaffold](https://img.shields.io/badge/skaffold-v2.2.0-blue)
+
  Simple REST API wrapper for [ClamAV](http://www.clamav.net/) written in Go.
 
 ## Description
