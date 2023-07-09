@@ -193,6 +193,8 @@ For more informations about Skaffold and what it can do, visit the project [docu
 
 To deploy to a Kubernetes cluster without Skaffold, simply build & push the docker image to an external registry. Then change the docker image name to include the registry in the `deploy/k8s/deployment.yaml` manifest.
 
+Note: You can change and customize the `clamd.conf` in `deploy/k8s/configmap.yaml`.
+
 ## Specifications :ocean:
 
 `GET /rest/v1/ping` will send the `PING` command to Clamd
@@ -207,7 +209,7 @@ To deploy to a Kubernetes cluster without Skaffold, simply build & push the dock
 
 `POST /rest/v1/shutdown` will send the `SHUTDOWN` command to Clamd
 
-`POST /rest/v1/scan` will send the `INSTREAM` command to Clamd and stream the form for Clamd to scan. Note: this endpoint expects a `multipart/form-data`. See [Examples](https://github/com/lescactus/clamav-go-api#Examples) below.
+`POST /rest/v1/scan` (with a form in the request body) will send the `INSTREAM` command to Clamd and stream the form for Clamd to scan. Note: this endpoint expects a `multipart/form-data`. See [Examples](https://github/com/lescactus/clamav-go-api#Examples) below.
 
 ## Examples
 
@@ -248,7 +250,7 @@ $ wget https://secure.eicar.org/eicar.com.txt -O /tmp/eicar.txt
 # Generate a 1M file with random content
 $ dd if=/dev/urandom of=/tmp/test.txt bs=1M count=1
 
-$ curl 127.0.0.1:8080/rest/v1/scan -F "file=@/tmp/test.txt" -v
+$ curl 127.0.0.1:8080/rest/v1/scan -F "file=@/tmp/test.txt" -v | jq ''
 *   Trying 127.0.0.1:8080...
 * Connected to 127.0.0.1 (127.0.0.1) port 8080 (#0)
 > POST /rest/v1/scan HTTP/1.1
@@ -270,9 +272,14 @@ $ curl 127.0.0.1:8080/rest/v1/scan -F "file=@/tmp/test.txt" -v
 < Content-Length: 74
 < 
 * Connection #0 to host 127.0.0.1 left intact
-{"status":"noerror","msg":"stream: OK","signature":"","virus_found":false}
+{
+  "status": "noerror",
+  "msg": "stream: OK",
+  "signature": "",
+  "virus_found": false
+}
 
-$ curl 127.0.0.1:8080/rest/v1/scan -F "file=@/tmp/eicar.txt" -v
+$ curl 127.0.0.1:8080/rest/v1/scan -F "file=@/tmp/eicar.txt" -v | jq ''
 *   Trying 127.0.0.1:8080...
 * Connected to 127.0.0.1 (127.0.0.1) port 8080 (#0)
 > POST /rest/v1/scan HTTP/1.1
@@ -291,11 +298,136 @@ $ curl 127.0.0.1:8080/rest/v1/scan -F "file=@/tmp/eicar.txt" -v
 < Content-Length: 110
 < 
 * Connection #0 to host 127.0.0.1 left intact
-{"status":"error","msg":"file contains potential virus","signature":"Win.Test.EICAR_HDB-1","virus_found":true}
+{
+  "status": "error",
+  "msg": "file contains potential virus",
+  "signature": "Win.Test.EICAR_HDB-1",
+  "virus_found": true
+}
 ```
 
 ## Development
 
-air, skaffold unit tests
+### Live reloading with air
 
+Use [air](https://github.com/cosmtrek/air) for live code reloading:
+
+```
+# Install air
+$ go install github.com/cosmtrek/air@latest
+
+$ air
+  __    _   ___  
+ / /\  | | | |_) 
+/_/--\ |_| |_| \_ , built with Go 
+
+watching .
+watching deploy
+watching deploy/k8s
+watching dist
+watching dist/clamav-api-go_darwin_amd64_v1
+watching dist/clamav-api-go_darwin_arm64
+watching dist/clamav-api-go_linux_386
+watching dist/clamav-api-go_linux_amd64_v1
+watching dist/clamav-api-go_linux_arm64
+watching dist/clamav-api-go_windows_386
+watching dist/clamav-api-go_windows_amd64_v1
+watching dist/clamav-api-go_windows_arm64
+watching internal
+watching internal/clamav
+watching internal/config
+watching internal/controllers
+watching internal/logger
+!exclude tmp
+building...
+running...
+main.go has changed
+building...
+main.go has changed
+running...
+```
+
+### Use Skaffold with Kubernetes
+
+Use `skaffold dev` with a local k8s cluster, such as `minikube`, `k3d` or `kind`:
+
+```bash
+# Example with k3d
+# Create a local k8s cluster
+$ k3d cluster create
+
+# Run skaffold in dev mode, with live reloading, log tailing and port-forwarding
+$ skaffold dev --tail --port-forward
+Generating tags...
+ - clamav-api -> clamav-api:2023-07-09_12-17-11.852_CEST
+Checking cache...
+ - clamav-api: Not found. Building
+Starting build...
+Found [k3d-k3s-default] context, using local docker daemon.
+Building [clamav-api]...
+Target platforms: [linux/amd64]
+...
+Build [clamav-api] succeeded
+Starting test...
+Testing images...
+Running custom test command: "go test ./..."
+?   	github.com/lescactus/clamav-api-go	[no test files]
+ok  	github.com/lescactus/clamav-api-go/internal/clamav	(cached)
+?   	github.com/lescactus/clamav-api-go/internal/config	[no test files]
+ok  	github.com/lescactus/clamav-api-go/internal/controllers	(cached)
+ok  	github.com/lescactus/clamav-api-go/internal/logger	(cached)
+Command finished successfully.
+Tags used in deployment:
+ - clamav-api -> clamav-api:c505b5f5ed48c79ec01a85bfb8827e036f211d17296e7b34aa94f9bb5e16a83d
+Starting deploy...
+Loading images into k3d cluster nodes...
+ - clamav-api:c505b5f5ed48c79ec01a85bfb8827e036f211d17296e7b34aa94f9bb5e16a83d -> Found
+Images loaded in 69.747973ms
+ - configmap/clamav created
+ - deployment.apps/clamav-api created
+ - service/clamav-api created
+ - serviceaccount/clamav-api created
+Waiting for deployments to stabilize...
+ - deployment/clamav-api: waiting for rollout to finish: 0 of 1 updated replicas are available...
+ - deployment/clamav-api is ready.
+Deployments stabilized in 31.091 seconds
+Port forwarding service/clamav-api in namespace default, remote port 80 -> http://127.0.0.1:8080
+Listing files to watch...
+ - clamav-api
+Press Ctrl+C to exit
+Watching for changes...
+[clamav-api] {"level":"error","svc":"clamav-api-go","req_id":"cil8ifirnmmc73a3q740","time":"2023-07-09T10:17:34Z","message":"error while sending ping command: dial tcp 127.0.0.0:3310: connect: connection refused"}
+[clamav-api] {"level":"info","svc":"clamav-api-go","remote_client":"10.42.0.1:45986","user_agent":"kube-probe/1.26","req_id":"cil8ifirnmmc73a3q740","method":"GET","url":"/rest/v1/ping","status":502,"size":83,"duration":0.204641,"time":"2023-07-09T10:17:34Z"}
+[clamav-api] {"level":"debug","svc":"clamav-api-go","req_id":"cil8ijarnmmc73a3q74g","time":"2023-07-09T10:17:49Z","message":"ping command sent successfully"}
+[clamav-api] {"level":"info","svc":"clamav-api-go","remote_client":"10.42.0.1:42870","user_agent":"kube-probe/1.26","req_id":"cil8ijarnmmc73a3q74g","method":"GET","url":"/rest/v1/ping","status":200,"size":15,"duration":0.511549,"time":"2023-07-09T10:17:49Z"}
+[clamav-api] {"level":"debug","svc":"clamav-api-go","req_id":"cil8ijarnmmc73a3q750","time":"2023-07-09T10:17:49Z","message":"ping command sent successfully"}
+[clamav-api] {"level":"info","svc":"clamav-api-go","remote_client":"10.42.0.1:42876","user_agent":"kube-probe/1.26","req_id":"cil8ijarnmmc73a3q750","method":"GET","url":"/rest/v1/ping","status":200,"size":15,"duration":0.375841,"time":"2023-07-09T10:17:49Z"}
+[clamav] Starting Freshclamd
+[clamav] Starting ClamAV
+Socket for clamd not found yet, retrying (0/1800) ...ClamAV update process started at Sun Jul  9 10:17:19 2023
+...
+[clamav] Sun Jul  9 10:17:36 2023 -> Set stacksize to 1048576
+[clamav] socket found, clamd started.
+[clamav-api] {"level":"debug","svc":"clamav-api-go","req_id":"cil8ilirnmmc73a3q75g","file_name":"test.txt","file_size":1048576,"time":"2023-07-09T10:17:58Z","message":"multipart file read successfully"}
+[clamav-api] {"level":"debug","svc":"clamav-api-go","req_id":"cil8ilirnmmc73a3q75g","time":"2023-07-09T10:17:58Z","message":"file scanned successfully"}
+[clamav-api] {"level":"info","svc":"clamav-api-go","remote_client":"127.0.0.1:44044","user_agent":"curl/7.81.0","req_id":"cil8ilirnmmc73a3q75g","method":"POST","url":"/rest/v1/scan","status":200,"size":74,"duration":61.101685,"time":"2023-07-09T10:17:58Z"}
+[clamav-api] {"level":"debug","svc":"clamav-api-go","req_id":"cil8ilqrnmmc73a3q760","time":"2023-07-09T10:17:59Z","message":"ping command sent successfully"}
+[clamav-api] {"level":"info","svc":"clamav-api-go","remote_client":"10.42.0.1:44084","user_agent":"kube-probe/1.26","req_id":"cil8ilqrnmmc73a3q760","method":"GET","url":"/rest/v1/ping","status":200,"size":15,"duration":0.522211,"time":"2023-07-09T10:17:59Z"}
+[clamav-api] {"level":"debug","svc":"clamav-api-go","req_id":"cil8ioarnmmc73a3q76g","time":"2023-07-09T10:18:09Z","message":"ping command sent successfully"}
+[clamav-api] {"level":"info","svc":"clamav-api-go","remote_client":"10.42.0.1:56626","user_agent":"kube-probe/1.26","req_id":"cil8ioarnmmc73a3q76g","method":"GET","url":"/rest/v1/ping","status":200,"size":15,"duration":0.373957,"time":"2023-07-09T10:18:09Z"}
+```
+
+
+### Unit tests
+
+To run the test suite, run the following commands:
+
+```bash
+# Run the unit tests. Remove the '-v' flag to reduce verbosity
+go test -v ./... 
+
+# Get coverage to html format
+go test -coverprofile /tmp/cover.out ./... -v
+go tool cover -html=/tmp/cover.out
+```
 
