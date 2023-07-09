@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/handlers"
@@ -74,8 +78,29 @@ func main() {
 	r.Handler(http.MethodPost, "/rest/v1/shutdown", c.ThenFunc(h.Shutdown))
 	r.Handler(http.MethodPost, "/rest/v1/scan", c.ThenFunc(h.InStream))
 
-	logger.Info().Msgf("Starting server %s on address %s ...", config.AppName, cfg.ServerAddr)
-	if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		logger.Fatal().Err(err).Msg("Startup failed")
+	// Start server
+	go func() {
+		logger.Info().Msgf("Starting server %s on address %s ...", config.AppName, cfg.ServerAddr)
+		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal().Err(err).Msg("Startup failed")
+		}
+	}()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
+	// Blocking until receiving a shutdown signal
+	sig := <-sigChan
+
+	logger.Info().Msgf("Server received %s signal. Shutting down...", sig)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer func() {
+		cancel()
+	}()
+
+	// Attempting to gracefully shutdown the server
+	if err := s.Shutdown(ctx); err != nil {
+		logger.Warn().Msg("Failed to gracefully shutdown the server")
 	}
+
 }
