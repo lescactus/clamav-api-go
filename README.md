@@ -212,7 +212,7 @@ Note: You can change and customize the `clamd.conf` in `deploy/k8s/configmap.yam
 
 `POST /rest/v1/scan` (with a form in the request body) will send the `INSTREAM` command to Clamd and stream the form for Clamd to scan. Note: this endpoint expects a `multipart/form-data`. See [Examples](https://github/com/lescactus/clamav-go-api#Examples) below.
 
-## Configuration
+## Configuration :deciduous_tree:
 
 `clamav-api-go` is a 12-factor app using [Viper](https://github.com/spf13/viper) as a configuration manager. It can read configuration from environment variables or `.env` file.
 
@@ -234,7 +234,7 @@ Note: You can change and customize the `clamd.conf` in `deploy/k8s/configmap.yam
 `CLAMAV_TIMEOUT` | `30s` | Maximum amount of time a dial to the Clamav server will wait for a connect to complete
 `CLAMAV_KEEPALIVE` | `30s` | Specifies the interval between keep-alive probes for an active connection to the Clamav server. If negative, keep-alive probes are disabled
 
-## Examples
+## Examples :radio:
 
 ```
 $ curl 127.0.0.1:8080/rest/v1/ping
