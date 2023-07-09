@@ -3,3 +3,4 @@ tmp/
 dist/
 main
 clamav-api-go
+config.*

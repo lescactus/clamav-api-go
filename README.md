@@ -216,20 +216,81 @@ Note: You can change and customize the `clamd.conf` in `deploy/k8s/configmap.yam
 
 ## Configuration :deciduous_tree:
 
-`clamav-api-go` is a 12-factor app using [Viper](https://github.com/spf13/viper) as a configuration manager. It can read configuration from environment variables or `.env` file.
+`clamav-api-go` is a 12-factor compliant app using [Viper](https://github.com/spf13/viper) as a configuration manager. It can read configuration from either config files or environment variables. Available configuration files are:
 
-### Available variables
+* `config.json`
+* `config.yaml`
+* `config.env`
+
+### `config.json`
+
+**Example**
+
+```json
+{
+    "server_addr": ":8080",
+    "server_read_timeout": "30s",
+    "server_read_header_timeout": "10s",
+    "server_write_timeout": "30s",
+    "logger_log_level": "debug",
+    "logger_duration_field_unit": "ms",
+    "logger_format": "console",
+    "clamav_addr": "127.0.0.1:3310",
+    "clamav_network": "tcp",
+    "clamav_timeout": "30s",
+    "clamav_keepalive": "30s"
+}
+```
+
+### `config.yaml`
+
+**Example**
+
+```yaml
+server_addr: :8080
+server_read_timeout: 30s
+server_read_header_timeout: 10s
+server_write_timeout: 30s
+logger_log_level: debug
+logger_duration_field_unit: ms
+logger_format: console
+clamav_addr: 127.0.0.1:3310
+clamav_network: tcp
+clamav_timeout: 30s
+clamav_keepalive: 30s
+```
+
+### `config.env`
+
+**Example**
+
+```
+SERVER_ADDR=:8080
+SERVER_READ_TIMEOUT=30s
+SERVER_READ_HEADER_TIMEOUT=10s
+SERVER_WRITE_TIMEOUT=30s
+LOGGER_LOG_LEVEL=debug
+LOGGER_DURATION_FIELD_UNIT=s
+LOGGER_FORMAT=console
+CLAMAV_ADDR=127.0.0.1:3310
+CLAMAV_NETWORK=tcp
+CLAMAV_TIMEOUT=30s
+CLAMAV_KEEPALIVE=300s
+```
+
+
+### From environment variables
+
+It is the same variables as in the `config.env`
 
 | Variable | Default value | Description |
 | :---: | :---: |  --- |
-`APP_ADDR` | `:8080` | Define the TCP address for the server to listen on, in the form "host:port"
-`APP_CONFIG_NAME` | `.env` | Name of the `.env` configuration file to read from 
-`APP_CONFIG_PATH` | `.` | Path of the `.env` configuration file
+`SERVER_ADDR` | `:8080` | Define the TCP address for the server to listen on, in the form "host:port"
 `SERVER_READ_TIMEOUT` | `30s` | Maximum duration for the http server to read the entire request, including the body. A zero or negative value means there will be no timeout. 
 `SERVER_READ_HEADER_TIMEOUT` | `10s` | Amount of time the http server allow to read request headers. If the value is zero, the value of `SERVER_READ_TIMEOUT` is used. If both are zero, there is no timeout
 `SERVER_WRITE_TIMEOUT` | `30s` | Maximum duration before the http server times out writes of the response. A zero or negative value means there will be no timeout
 `LOGGER_LOG_LEVEL` | `info` | Log level. Available: `trace`, `debug`, `info`, `warn`, `error`, `fatal` and `panic`. [Ref](https://pkg.go.dev/github.com/rs/zerolog@v1.26.1#pkg-variables)
-`LOGGER_DURATION_FIELD_UNIT` | `ms` | Defines the unit for `time.Duration` type fields in the logger
+`LOGGER_DURATION_FIELD_UNIT` | `ms` | Defines the unit for `time.Duration` type fields in the logger. Available: `ms`, `millisecond`, `s`, `second`
 `LOGGER_FORMAT` | `json` | Format of the logs. Can be either `json` or `console`
 `CLAMAV_ADDR` | `127.0.0.0:3310` | Network address of the Clamav server
 `CLAMAV_NETWORK` | `tcp` | Define the named network of the Clamav server. Example: `tcp`, `tcp4`, `tcp6`, `unix`, etc ... See the [`Dial()`](https://pkg.go.dev/net#Dial) documentation for more details
