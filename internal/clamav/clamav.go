@@ -199,6 +199,13 @@ func (c *ClamavClient) InStream(ctx context.Context, r io.Reader, size int64) ([
 		if e != nil {
 			return nil, fmt.Errorf("error while streaming content to %s/%s: %w", c.network, c.address, err)
 		}
+		err = c.parseResponse(resp)
+		if err != nil {
+			if err == ErrScanFileSizeLimitExceeded {
+				return nil, err
+			}
+			return nil, fmt.Errorf("error from clamav: %w", err)
+		}
 		return resp, fmt.Errorf("error while streaming content to %s/%s: %w", c.network, c.address, err)
 	}
 

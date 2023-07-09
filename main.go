@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	_ "net/http/pprof" // Register the pprof handlers
+
 	"github.com/gorilla/handlers"
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
@@ -18,6 +20,12 @@ import (
 	"github.com/lescactus/clamav-api-go/internal/logger"
 	"github.com/rs/zerolog/hlog"
 )
+
+func init() {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+}
 
 func main() {
 	// Get application configuration
