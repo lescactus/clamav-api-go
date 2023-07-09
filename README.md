@@ -218,8 +218,8 @@ Note: You can change and customize the `clamd.conf` in `deploy/k8s/configmap.yam
 
 ### Available variables
 
-Variable | Default value | Description 
---- | --- | --- | ---
+| Variable | Default value | Description |
+| :---: | :---: |  --- |
 `APP_ADDR` | `:8080` | Define the TCP address for the server to listen on, in the form "host:port"
 `APP_CONFIG_NAME` | `.env` | Name of the `.env` configuration file to read from 
 `APP_CONFIG_PATH` | `.` | Path of the `.env` configuration file
