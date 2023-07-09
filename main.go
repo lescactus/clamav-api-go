@@ -46,7 +46,7 @@ func main() {
 	// logger fields
 	*logger = logger.With().Str("svc", config.AppName).Logger()
 
-	// // Register logging middleware
+	// Register logging middleware
 	c = c.Append(hlog.NewHandler(*logger))
 	c = c.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
 		hlog.FromRequest(r).Info().
@@ -70,6 +70,7 @@ func main() {
 	r.Handler(http.MethodPost, "/rest/v1/shutdown", c.ThenFunc(h.Shutdown))
 	r.Handler(http.MethodPost, "/rest/v1/scan", c.ThenFunc(h.InStream))
 
+	logger.Info().Msgf("Starting server %s on address %s ...", config.AppName, cfg.GetString("APP_ADDR"))
 	if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Fatal().Err(err).Msg("Startup failed")
 	}
