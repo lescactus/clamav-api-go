@@ -190,7 +190,6 @@ The following happened:
 
 For more informations about Skaffold and what it can do, visit the project [documentation](Without Skaffold).
 
-
 #### Without Skaffold
 
 To deploy to a Kubernetes cluster without Skaffold, simply build & push the docker image to an external registry. Then change the docker image name to include the registry in the `deploy/k8s/deployment.yaml` manifest.
@@ -212,6 +211,28 @@ Note: You can change and customize the `clamd.conf` in `deploy/k8s/configmap.yam
 `POST /rest/v1/shutdown` will send the `SHUTDOWN` command to Clamd
 
 `POST /rest/v1/scan` (with a form in the request body) will send the `INSTREAM` command to Clamd and stream the form for Clamd to scan. Note: this endpoint expects a `multipart/form-data`. See [Examples](https://github/com/lescactus/clamav-go-api#Examples) below.
+
+## Configuration
+
+`clamav-api-go` is a 12-factor app using [Viper](https://github.com/spf13/viper) as a configuration manager. It can read configuration from environment variables or `.env` file.
+
+### Available variables
+
+Variable | Default value | Description 
+--- | --- | --- | ---
+`APP_ADDR` | `:8080` | Define the TCP address for the server to listen on, in the form "host:port"
+`APP_CONFIG_NAME` | `.env` | Name of the `.env` configuration file to read from 
+`APP_CONFIG_PATH` | `.` | Path of the `.env` configuration file
+`SERVER_READ_TIMEOUT` | `30s` | Maximum duration for the http server to read the entire request, including the body. A zero or negative value means there will be no timeout. 
+`SERVER_READ_HEADER_TIMEOUT` | `10s` | Amount of time the http server allow to read request headers. If the value is zero, the value of `SERVER_READ_TIMEOUT` is used. If both are zero, there is no timeout
+`SERVER_WRITE_TIMEOUT` | `30s` | Maximum duration before the http server times out writes of the response. A zero or negative value means there will be no timeout
+`LOGGER_LOG_LEVEL` | `info` | Log level. Available: `trace`, `debug`, `info`, `warn`, `error`, `fatal` and `panic`. [Ref](https://pkg.go.dev/github.com/rs/zerolog@v1.26.1#pkg-variables)
+`LOGGER_DURATION_FIELD_UNIT` | `ms` | Defines the unit for `time.Duration` type fields in the logger
+`LOGGER_FORMAT` | `json` | Format of the logs. Can be either `json` or `console`
+`CLAMAV_ADDR` | `127.0.0.0:3310` | Network address of the Clamav server
+`CLAMAV_NETWORK` | `tcp` | Define the named network of the Clamav server. Example: `tcp`, `tcp4`, `tcp6`, `unix`, etc ... See the [`Dial()`](https://pkg.go.dev/net#Dial) documentation for more details
+`CLAMAV_TIMEOUT` | `30s` | Maximum amount of time a dial to the Clamav server will wait for a connect to complete
+`CLAMAV_KEEPALIVE` | `30s` | Specifies the interval between keep-alive probes for an active connection to the Clamav server. If negative, keep-alive probes are disabled
 
 ## Examples
 
