@@ -18,6 +18,8 @@ The Clamd tcp protocol is explained here: http://linux.die.net/man/8/clamd
 
 ## Getting started
 
+Prebuilt binaries can be downloaded from the GitHub Releases [section](https://github.com/lescactus/clamav-api-go/releases), or using a Docker image from the Github Container Registry. See [here](https://github.com/lescactus/clamav-api-go#running-with-docker-rooster)
+
 ### Building `clamav-api-go` :cd:
 
 <details>
