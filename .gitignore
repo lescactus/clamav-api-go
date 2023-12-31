@@ -4,3 +4,5 @@ dist/
 main
 clamav-api-go
 config.*
+venom*.log
+venom*.dump.json

@@ -1,0 +1,33 @@
+name: Run e2e tests
+
+on:
+  push:
+    branches: [ "*" ]
+  pull_request:
+    branches: [ master ]
+  
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Install venom
+      run: |
+        curl https://github.com/ovh/venom/releases/download/v1.1.0/venom.linux-amd64 -L -o /usr/local/bin/venom && chmod +x /usr/local/bin/venom
+        venom version
+
+    - name: Docker compose up
+      run: docker compose up --wait
+
+    - name: Run e2e tests with venom
+      run: |
+        export IS_TTY=true
+        venom run -vv ./e2e/venom.e2e.yaml

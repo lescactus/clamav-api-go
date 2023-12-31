@@ -1,0 +1,198 @@
+name: HTTP tests suite
+
+vars:
+  baseuri: http://127.0.0.1:8080
+
+testcases:
+- name: GET /rest/v1/ping
+  steps:
+  - type: http
+    method: GET
+    url: "{{ .baseuri }}/rest/v1/ping"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson.ping ShouldEqual PONG
+
+- name: POST /rest/v1/ping
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/rest/v1/ping"
+    assertions:
+    - result.statuscode ShouldEqual 405
+
+- name: GET /rest/v1/version
+  steps:
+  - type: http
+    method: GET
+    url: "{{ .baseuri }}/rest/v1/version"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson.clamav_version ShouldContainSubstring ClamAV
+
+- name: POST /rest/v1/version
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/rest/v1/version"
+    assertions:
+    - result.statuscode ShouldEqual 405
+
+- name: GET /rest/v1/stats
+  steps:
+  - type: http
+    method: GET
+    url: "{{ .baseuri }}/rest/v1/stats"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson ShouldContainKey pools
+    - result.bodyjson ShouldContainKey state
+    - result.bodyjson ShouldContainKey threads
+    - result.bodyjson ShouldContainKey queue
+    - result.bodyjson ShouldContainKey memstats
+
+- name: POST /rest/v1/stats
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/rest/v1/stats"
+    assertions:
+    - result.statuscode ShouldEqual 405
+
+- name: GET /rest/v1/versioncommands
+  steps:
+  - type: http
+    method: GET
+    url: "{{ .baseuri }}/rest/v1/versioncommands"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson.clamav_version ShouldContainSubstring ClamAV
+    - result.bodyjson.commands.__type__ ShouldEqual Array
+
+- name: POST /rest/v1/versioncommands
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/rest/v1/versioncommands"
+    assertions:
+    - result.statuscode ShouldEqual 405
+
+- name: GET /rest/v1/reload
+  steps:
+  - type: http
+    method: GET
+    url: "{{ .baseuri }}/rest/v1/reload"
+    assertions:
+    - result.statuscode ShouldEqual 405
+
+- name: POST /rest/v1/reload
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/rest/v1/reload"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson ShouldContainKey status
+
+- name: GET /rest/v1/shutdown
+  steps:
+  - type: http
+    method: GET
+    url: "{{ .baseuri }}/rest/v1/shutdown"
+    assertions:
+    - result.statuscode ShouldEqual 405
+
+- name: POST /rest/v1/shutdown
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/rest/v1/shutdown"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson ShouldContainKey status
+
+- name: GET /rest/v1/scan
+  steps:
+  - type: http
+    method: GET
+    url: "{{ .baseuri }}/rest/v1/scan"
+    assertions:
+    - result.statuscode ShouldEqual 405
+
+- name: POST /rest/v1/scan - no Content-Type
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/rest/v1/scan"
+    assertions:
+    - result.statuscode ShouldEqual 400
+    - result.bodyjson.status ShouldEqual error
+    - result.bodyjson.msg ShouldContainSubstring "Content-Type isn't multipart/form-data"
+
+- name: POST /rest/v1/scan - wrong Content-Type
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/rest/v1/scan"
+    headers:
+        Content-Type: text/plain
+    assertions:
+    - result.statuscode ShouldEqual 400
+    - result.bodyjson.status ShouldEqual error
+    - result.bodyjson.msg ShouldContainSubstring "Content-Type isn't multipart/form-data"
+
+- name: POST /rest/v1/scan - correct Content-Type - no data sent
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/rest/v1/scan"
+    headers:
+        Content-Type: multipart/form-data
+    assertions:
+    - result.statuscode ShouldEqual 400
+    - result.bodyjson.status ShouldEqual error
+    - result.bodyjson.msg ShouldContainSubstring "no multipart boundary param in Content-Type"
+
+- name: POST /rest/v1/scan - request body not virus
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/rest/v1/scan"
+    multipart_form:
+      file: '@./e2e/testsdata/novirus.txt'
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson.status ShouldEqual noerror
+    - result.bodyjson.msg ShouldContainSubstring OK
+    - result.bodyjson.signature ShouldBeBlank
+    - result.bodyjson.virus_found ShouldBeFalse
+
+- name: POST /rest/v1/scan - request body is virus
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/rest/v1/scan"
+    multipart_form:
+      file: '@./e2e/testsdata/eicar.txt'
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson.status ShouldEqual error
+    - result.bodyjson.msg ShouldEqual "file contains potential virus"
+    - result.bodyjson.signature ShouldEqual Win.Test.EICAR_HDB-1
+    - result.bodyjson.virus_found ShouldBeTrue
+
+- name: GET /invalid/path
+  steps:
+  - type: http
+    method: GET
+    url: "{{ .baseuri }}/invalid/path"
+    assertions:
+    - result.statuscode ShouldEqual 404
+
+- name: POST /invalid/path
+  steps:
+  - type: http
+    method: POST
+    url: "{{ .baseuri }}/invalid/path"
+    assertions:
+    - result.statuscode ShouldEqual 404
