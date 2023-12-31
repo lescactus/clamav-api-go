@@ -1,6 +1,6 @@
 # clamav-api-go
 
-[![build and test](https://github.com/lescactus/clamav-api-go/actions/workflows/go.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/go.yaml) [![Kubernetes](https://github.com/lescactus/clamav-api-go/actions/workflows/k8s.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/k8s.yaml) [![Release](https://github.com/lescactus/clamav-api-go/actions/workflows/release.yml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/release.yml)
+[![build and test](https://github.com/lescactus/clamav-api-go/actions/workflows/go.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/go.yaml) [![Kubernetes](https://github.com/lescactus/clamav-api-go/actions/workflows/k8s.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/k8s.yaml) [![Run e2e tests](https://github.com/lescactus/clamav-api-go/actions/workflows/e2e.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/e2e.yaml) [![Release](https://github.com/lescactus/clamav-api-go/actions/workflows/release.yml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/release.yml)
 
 ![go](https://img.shields.io/badge/go->=1.19-blue) ![skaffold](https://img.shields.io/badge/skaffold-v2.2.0-blue)
 
@@ -521,3 +521,18 @@ go test -coverprofile /tmp/cover.out ./... -v
 go tool cover -html=/tmp/cover.out
 ```
 
+### End to End tests
+
+This project uses [`ovh/venom`](https://github.com/ovh/venom) to run a e2e test suite against all the endpoints. Refer to the [documentation](https://github.com/ovh/venom#installing) to install the cli.
+
+```bash
+# Optionnaly, start docker compose
+docker compose up -d --wait
+
+# Execute the test suite against 127.0.0.1:8080
+venom run -vv e2e/venom.e2e.yaml
+
+# To override the default "127.0.0.1:8080" host:port, pass the "--var" flag
+# to the venom cli:
+venom run -vv --var=host=clamav.api.com:8080  e2e/venom.e2e.yaml
+```
