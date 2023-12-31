@@ -8,8 +8,8 @@ services:
       - LOGGER_LOG_LEVEL=debug
       - LOGGER_FORMAT=console
       - CLAMAV_ADDR=clamav:3310
-    depends_on:
-     - clamav
+    # depends_on:
+    #  - clamav
   clamav:
     image: clamav/clamav:stable
     expose:

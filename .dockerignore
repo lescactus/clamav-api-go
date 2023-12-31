@@ -7,3 +7,6 @@ LICENSE
 skaffold.yaml
 # All dotfiles
 .*
+venom*.log
+venom*.dump.json
+e2e/
