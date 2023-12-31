@@ -529,10 +529,10 @@ This project uses [`ovh/venom`](https://github.com/ovh/venom) to run a e2e test 
 # Optionnaly, start docker compose
 docker compose up -d --wait
 
-# Execute the test suite against 127.0.0.1:8080
+# Execute the test suite against http://127.0.0.1:8080
 venom run -vv e2e/venom.e2e.yaml
 
-# To override the default "127.0.0.1:8080" host:port, pass the "--var" flag
+# To override the default "http://127.0.0.1:8080" protocol://host:port, pass the "--var" flag
 # to the venom cli:
-venom run -vv --var=host=clamav.api.com:8080  e2e/venom.e2e.yaml
+venom run -vv --var=baseuri=https://clamav.api.com:443  e2e/venom.e2e.yaml
 ```

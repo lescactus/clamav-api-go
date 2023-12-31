@@ -1,14 +1,14 @@
 name: HTTP tests suite
 
 vars:
-  host: 127.0.0.1:8080
+  baseuri: http://127.0.0.1:8080
 
 testcases:
 - name: GET /rest/v1/ping
   steps:
   - type: http
     method: GET
-    url: http://{{ .host }}/rest/v1/ping
+    url: "{{ .baseuri }}/rest/v1/ping"
     assertions:
     - result.statuscode ShouldEqual 200
     - result.bodyjson.ping ShouldEqual PONG
@@ -17,7 +17,7 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/rest/v1/ping
+    url: "{{ .baseuri }}/rest/v1/ping"
     assertions:
     - result.statuscode ShouldEqual 405
 
@@ -25,7 +25,7 @@ testcases:
   steps:
   - type: http
     method: GET
-    url: http://{{ .host }}/rest/v1/version
+    url: "{{ .baseuri }}/rest/v1/version"
     assertions:
     - result.statuscode ShouldEqual 200
     - result.bodyjson.clamav_version ShouldContainSubstring ClamAV
@@ -34,7 +34,7 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/rest/v1/version
+    url: "{{ .baseuri }}/rest/v1/version"
     assertions:
     - result.statuscode ShouldEqual 405
 
@@ -42,7 +42,7 @@ testcases:
   steps:
   - type: http
     method: GET
-    url: http://{{ .host }}/rest/v1/stats
+    url: "{{ .baseuri }}/rest/v1/stats"
     assertions:
     - result.statuscode ShouldEqual 200
     - result.bodyjson ShouldContainKey pools
@@ -55,7 +55,7 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/rest/v1/stats
+    url: "{{ .baseuri }}/rest/v1/stats"
     assertions:
     - result.statuscode ShouldEqual 405
 
@@ -63,7 +63,7 @@ testcases:
   steps:
   - type: http
     method: GET
-    url: http://{{ .host }}/rest/v1/versioncommands
+    url: "{{ .baseuri }}/rest/v1/versioncommands"
     assertions:
     - result.statuscode ShouldEqual 200
     - result.bodyjson.clamav_version ShouldContainSubstring ClamAV
@@ -73,7 +73,7 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/rest/v1/versioncommands
+    url: "{{ .baseuri }}/rest/v1/versioncommands"
     assertions:
     - result.statuscode ShouldEqual 405
 
@@ -81,7 +81,7 @@ testcases:
   steps:
   - type: http
     method: GET
-    url: http://{{ .host }}/rest/v1/reload
+    url: "{{ .baseuri }}/rest/v1/reload"
     assertions:
     - result.statuscode ShouldEqual 405
 
@@ -89,7 +89,7 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/rest/v1/reload
+    url: "{{ .baseuri }}/rest/v1/reload"
     assertions:
     - result.statuscode ShouldEqual 200
     - result.bodyjson ShouldContainKey status
@@ -98,7 +98,7 @@ testcases:
   steps:
   - type: http
     method: GET
-    url: http://{{ .host }}/rest/v1/shutdown
+    url: "{{ .baseuri }}/rest/v1/shutdown"
     assertions:
     - result.statuscode ShouldEqual 405
 
@@ -106,7 +106,7 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/rest/v1/shutdown
+    url: "{{ .baseuri }}/rest/v1/shutdown"
     assertions:
     - result.statuscode ShouldEqual 200
     - result.bodyjson ShouldContainKey status
@@ -115,7 +115,7 @@ testcases:
   steps:
   - type: http
     method: GET
-    url: http://{{ .host }}/rest/v1/scan
+    url: "{{ .baseuri }}/rest/v1/scan"
     assertions:
     - result.statuscode ShouldEqual 405
 
@@ -123,7 +123,7 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/rest/v1/scan
+    url: "{{ .baseuri }}/rest/v1/scan"
     assertions:
     - result.statuscode ShouldEqual 400
     - result.bodyjson.status ShouldEqual error
@@ -133,7 +133,7 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/rest/v1/scan
+    url: "{{ .baseuri }}/rest/v1/scan"
     headers:
         Content-Type: text/plain
     assertions:
@@ -145,7 +145,7 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/rest/v1/scan
+    url: "{{ .baseuri }}/rest/v1/scan"
     headers:
         Content-Type: multipart/form-data
     assertions:
@@ -157,7 +157,7 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/rest/v1/scan
+    url: "{{ .baseuri }}/rest/v1/scan"
     multipart_form:
       file: '@./e2e/testsdata/novirus.txt'
     assertions:
@@ -171,7 +171,7 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/rest/v1/scan
+    url: "{{ .baseuri }}/rest/v1/scan"
     multipart_form:
       file: '@./e2e/testsdata/eicar.txt'
     assertions:
@@ -185,7 +185,7 @@ testcases:
   steps:
   - type: http
     method: GET
-    url: http://{{ .host }}/invalid/path
+    url: "{{ .baseuri }}/invalid/path"
     assertions:
     - result.statuscode ShouldEqual 404
 
@@ -193,6 +193,6 @@ testcases:
   steps:
   - type: http
     method: POST
-    url: http://{{ .host }}/invalid/path
+    url: "{{ .baseuri }}/invalid/path"
     assertions:
     - result.statuscode ShouldEqual 404
