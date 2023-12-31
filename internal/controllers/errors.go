@@ -33,6 +33,8 @@ func SetErrorResponse(w http.ResponseWriter, err error) {
 
 	var errResp *ErrorResponse
 
+	w.Header().Set("Content-Type", ContentTypeApplicationJSON)
+
 	if isNetError(err) {
 		errResp = NewErrorResponse("something wrong happened while communicating with clamav")
 		w.WriteHeader(http.StatusBadGateway)
@@ -60,7 +62,6 @@ func SetErrorResponse(w http.ResponseWriter, err error) {
 	}
 
 	resp, _ := json.Marshal(errResp)
-	w.Header().Set("Content-Type", ContentTypeApplicationJSON)
 	w.Write(resp)
 }
 
