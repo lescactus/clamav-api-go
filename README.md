@@ -2,7 +2,7 @@
 
 [![build and test](https://github.com/lescactus/clamav-api-go/actions/workflows/go.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/go.yaml) [![Kubernetes](https://github.com/lescactus/clamav-api-go/actions/workflows/k8s.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/k8s.yaml) [![Run e2e tests](https://github.com/lescactus/clamav-api-go/actions/workflows/e2e.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/e2e.yaml) [![Release](https://github.com/lescactus/clamav-api-go/actions/workflows/release.yml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/release.yml)
 
-![go](https://img.shields.io/badge/go->=1.19-blue) ![skaffold](https://img.shields.io/badge/skaffold-v2.2.0-blue)
+![go](https://img.shields.io/badge/go->=1.21-blue) ![skaffold](https://img.shields.io/badge/skaffold-v2.2.0-blue)
 
  Simple REST API wrapper for [ClamAV](http://www.clamav.net/) written in Go.
 
@@ -26,7 +26,7 @@ Prebuilt binaries can be downloaded from the GitHub Releases [section](https://g
 
 #### From source with Go
 
-You need a working [go](https://golang.org/doc/install) toolchain (It has been developped and tested with go 1.20 and should work with go >= 1.20). Refer to the official documentation for more information (or from your Linux/Mac/Windows distribution documentation to install it from your favorite package manager).
+You need a working [go](https://golang.org/doc/install) toolchain (It has been developped and tested with go 1.21 and should work with go >= 1.21). Refer to the official documentation for more information (or from your Linux/Mac/Windows distribution documentation to install it from your favorite package manager).
 
 ```bash
 # Clone this repository
@@ -47,7 +47,7 @@ If you don't have [go](https://golang.org/doc/install) installed but have docker
 ```bash
 # Build from sources inside a docker container. Use the '-o' flag to change the compiled binary name
 # Warning: the compiled binary belongs to root:root
-docker run --rm -it -v "$PWD":/app -w /app golang:1.20 go build -buildvcs=false
+docker run --rm -it -v "$PWD":/app -w /app golang:1.21 go build -buildvcs=false
 
 # Default compiled binary is clamav-api-go
 # You can optionnaly move it somewhere in your $PATH to access it shell wide
@@ -116,10 +116,10 @@ Target platforms: [linux/amd64]
 #2 transferring context: 122B done
 #2 DONE 0.0s
 
-#3 [internal] load metadata for docker.io/library/golang:1.20
+#3 [internal] load metadata for docker.io/library/golang:1.21
 #3 DONE 0.0s
 
-#4 [builder 1/6] FROM docker.io/library/golang:1.20
+#4 [builder 1/6] FROM docker.io/library/golang:1.21
 #4 DONE 0.0s
 
 #5 [internal] load build context
