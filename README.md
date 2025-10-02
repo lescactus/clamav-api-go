@@ -2,7 +2,7 @@
 
 [![build and test](https://github.com/lescactus/clamav-api-go/actions/workflows/go.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/go.yaml) [![Kubernetes](https://github.com/lescactus/clamav-api-go/actions/workflows/k8s.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/k8s.yaml) [![Run e2e tests](https://github.com/lescactus/clamav-api-go/actions/workflows/e2e.yaml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/e2e.yaml) [![Release](https://github.com/lescactus/clamav-api-go/actions/workflows/release.yml/badge.svg)](https://github.com/lescactus/clamav-api-go/actions/workflows/release.yml)
 
-![go](https://img.shields.io/badge/go->=1.21-blue) ![skaffold](https://img.shields.io/badge/skaffold-v2.2.0-blue)
+![go](https://img.shields.io/badge/go->=1.23-blue) ![skaffold](https://img.shields.io/badge/skaffold-v2.2.0-blue)
 
  Simple REST API wrapper for [ClamAV](http://www.clamav.net/) written in Go.
 
@@ -14,7 +14,7 @@ The Clamd tcp protocol is explained here: http://linux.die.net/man/8/clamd
 
 ## Requirements
 
-* Golang 1.19 or higher
+* Golang 1.23 or higher
 
 ## Getting started
 
@@ -47,7 +47,7 @@ If you don't have [go](https://golang.org/doc/install) installed but have docker
 ```bash
 # Build from sources inside a docker container. Use the '-o' flag to change the compiled binary name
 # Warning: the compiled binary belongs to root:root
-docker run --rm -it -v "$PWD":/app -w /app golang:1.21 go build -buildvcs=false
+docker run --rm -it -v "$PWD":/app -w /app golang:1.24 go build -buildvcs=false
 
 # Default compiled binary is clamav-api-go
 # You can optionnaly move it somewhere in your $PATH to access it shell wide
