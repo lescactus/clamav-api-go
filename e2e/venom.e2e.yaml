@@ -178,7 +178,7 @@ testcases:
     - result.statuscode ShouldEqual 200
     - result.bodyjson.status ShouldEqual error
     - result.bodyjson.msg ShouldEqual "file contains potential virus"
-    - result.bodyjson.signature ShouldEqual Win.Test.EICAR_HDB-1
+    - result.bodyjson.signature ShouldEqual Eicar-Test-Signature
     - result.bodyjson.virus_found ShouldBeTrue
 
 - name: GET /invalid/path
