@@ -6,7 +6,7 @@ runs:
     - name: Setup Kubernetes
       uses: nolar/setup-k3d-k3s@v1
       with:
-        version: v1.27
+        version: v1.35
      
     - name: Debug
       shell: bash
