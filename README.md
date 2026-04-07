@@ -47,7 +47,7 @@ If you don't have [go](https://golang.org/doc/install) installed but have docker
 ```bash
 # Build from sources inside a docker container. Use the '-o' flag to change the compiled binary name
 # Warning: the compiled binary belongs to root:root
-docker run --rm -it -v "$PWD":/app -w /app golang:1.24 go build -buildvcs=false
+docker run --rm -it -v "$PWD":/app -w /app golang:1.26 go build -buildvcs=false
 
 # Default compiled binary is clamav-api-go
 # You can optionnaly move it somewhere in your $PATH to access it shell wide
